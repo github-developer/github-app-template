@@ -31,12 +31,7 @@ set :bind, '0.0.0.0'
 
 class GHAapp < Sinatra::Application
 
-  # Expects that the private key has been set as an environment variable in
-  # PEM format using the following command to replace newlines with the
-  # literal `\n`:
-  #   export GITHUB_PRIVATE_KEY=`awk '{printf "%s\\n", $0}' private-key.pem`
-  #
-  # Converts the newlines
+  # Expects that the private key in PEM format. Converts the newlines
   PRIVATE_KEY = OpenSSL::PKey::RSA.new(ENV['GITHUB_PRIVATE_KEY'].gsub('\n', "\n"))
 
   # Your registered app must have a secret set. The secret is used to verify
