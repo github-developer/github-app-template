@@ -56,16 +56,6 @@ class GHAapp < Sinatra::Application
   before '/event_handler' do
     get_payload_request(request)
     verify_webhook_signature
-
-    # Each webhook sent to a GitHub App includes the ID of the app that triggered
-    # the event. You can get notifications for events created by other apps too.
-    # This conditional halts the program if the APP_IDENTIFIER doesn't match
-    # your app. You can always remove this check if you plan to extend this
-    # example, but you'll need to update the way `authenticate_installation`
-    # gets the installation id. For example, use the repository owner and name
-    # to fetch the installation id using
-    # https://developer.github.com/v3/apps/#find-repository-installation.
-    halt 400 unless @payload[request.env['HTTP_X_GITHUB_EVENT']]['app']['id'].to_s === APP_IDENTIFIER
     authenticate_app
     # Authenticate the app installation in order to run API operations
     authenticate_installation(@payload)
@@ -157,5 +147,5 @@ class GHAapp < Sinatra::Application
     end
 
   end
-  
+  run! if __FILE__ == $0
 end
