@@ -143,10 +143,11 @@ class GHAapp < Sinatra::Application
 
   end
 
-  # Finally some logic to let us run this server directly from the commandline, or with Rack
-  # Don't worry too much about this code. But, for the curious:
+  # Finally some logic to let us run this server directly from the command line,
+  # or with Rack. Don't worry too much about this code. But, for the curious:
   # $0 is the executed file
   # __FILE__ is the current file
-  # If they are the same—that is, we are running this file directly, call the Sinatra run method
+  # If they are the same—that is, we are running this file directly, call the
+  # Sinatra run method
   run! if __FILE__ == $0
 end
