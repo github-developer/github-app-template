@@ -1,9 +1,15 @@
-Build this sample project by following the "[Building Your First GitHub App](https://developer.github.com/apps/building-your-first-github-app)" Quickstart guide on developer.github.com.
+You can use this GitHub App template code as a foundation to create any GitHub App you'd like. You can learn how to configure a template GitHub App by following the "[Configuring a GitHub App](https://developer.github.com/apps/quickstart-guide/configuring-ast-github-app)" Quickstart guide on developer.github.com.
 
-## Install and run
+## Install
 
 To run the code, make sure you have [Bundler](http://gembundler.com/) installed; then enter `bundle install` on the command line.
 
-- For the boilerplate project, enter `ruby template_server.rb` on the command line.
+## Set environment variables
 
-Both commands will run the server at `localhost:3000`.
+1. Create a copy of the `.env-example` file called `.env`.
+2. Add your GitHub App's private key, app ID, and webhook secret to the `.env` file.
+
+## Run the server
+
+1. Run `ruby template_server.rb` on the command line.
+1. View the default Sinatra app at `localhost:3000`.
