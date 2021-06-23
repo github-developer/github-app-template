@@ -58,9 +58,18 @@ class GHAapp < Sinatra::Application
 
   post '/event_handler' do
 
+    # Get the event type from the HTTP_X_GITHUB_EVENT header
+    case request.env['HTTP_X_GITHUB_EVENT']
+    when 'check_suite'
+      # A new check_suite has been created. Create a new check run with status queued
+      if @payload['action'] == 'requested' || @payload['action'] == 'rerequested'
+        create_check_run
+      end
+    end
     # # # # # # # # # # # #
     # ADD YOUR CODE HERE  #
     # # # # # # # # # # # #
+
 
     200 # success status
   end
@@ -71,6 +80,21 @@ class GHAapp < Sinatra::Application
     # # # # # # # # # # # # # # # # #
     # ADD YOUR HELPER METHODS HERE  #
     # # # # # # # # # # # # # # # # #
+
+    # Create a new check run with the status queued
+    def create_check_run
+      @installation_client.create_check_run(
+        # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
+        @payload['repository']['full_name'],
+        # [String] The name of your check run.
+        'Octo RuboCop',
+        # [String] The SHA of the commit to check 
+        # The payload structure differs depending on whether a check run or a check suite event occurred.
+        @payload['check_run'].nil? ? @payload['check_suite']['head_sha'] : @payload['check_run']['head_sha'],
+        # [Hash] 'Accept' header option, to avoid a warning about the API not being ready for production use.
+        accept: 'application/vnd.github.v3+json'
+      )
+    end
 
     # Saves the raw payload and converts the payload to JSON format
     def get_payload_request(request)
