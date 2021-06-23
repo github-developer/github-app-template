@@ -60,12 +60,23 @@ class GHAapp < Sinatra::Application
 
     # Get the event type from the HTTP_X_GITHUB_EVENT header
     case request.env['HTTP_X_GITHUB_EVENT']
+    when 'check_run'
+      # Check that the event is being sent to this app
+      if @payload['check_run']['app']['id'].to_s === APP_IDENTIFIER
+        case @payload['action']
+        when 'created'
+          initiate_check_run
+        when 'rerequested'
+          create_check_run
+        end
+      end
     when 'check_suite'
       # A new check_suite has been created. Create a new check run with status queued
       if @payload['action'] == 'requested' || @payload['action'] == 'rerequested'
         create_check_run
       end
     end
+  
     # # # # # # # # # # # #
     # ADD YOUR CODE HERE  #
     # # # # # # # # # # # #
@@ -80,10 +91,33 @@ class GHAapp < Sinatra::Application
     # # # # # # # # # # # # # # # # #
     # ADD YOUR HELPER METHODS HERE  #
     # # # # # # # # # # # # # # # # #
+    # Start the CI process
+    def initiate_check_run
+      # Once the check run is created, you'll update the status of the check run
+      # to 'in_progress' and run the CI process. When the CI finishes, you'll
+      # update the check run status to 'completed' and add the CI results.
 
+      pp @installation_client.update_check_run(
+        @payload['repository']['full_name'],
+        @payload['check_run']['id'],
+        status: 'in_progress',
+        accept: 'application/vnd.github.v3+json'
+      )
+
+      # ***** RUN A CI TEST *****
+
+      # Mark the check run as complete!
+      pp @installation_client.update_check_run(
+        @payload['repository']['full_name'],
+        @payload['check_run']['id'],
+        status: 'completed',
+        conclusion: 'success',
+        accept: 'application/vnd.github.v3+json'
+      )
+    end
     # Create a new check run with the status queued
     def create_check_run
-      @installation_client.create_check_run(
+      pp @installation_client.create_check_run(
         # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
         @payload['repository']['full_name'],
         # [String] The name of your check run.
