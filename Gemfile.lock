@@ -1,38 +1,76 @@
 GEM
   remote: http://rubygems.org/
   specs:
-    addressable (2.5.2)
-      public_suffix (>= 2.0.2, < 4.0)
+    addressable (2.7.0)
+      public_suffix (>= 2.0.2, < 5.0)
+    ast (2.4.2)
     dotenv (2.5.0)
-    faraday (0.15.3)
+    faraday (1.4.2)
+      faraday-em_http (~> 1.0)
+      faraday-em_synchrony (~> 1.0)
+      faraday-excon (~> 1.1)
+      faraday-net_http (~> 1.0)
+      faraday-net_http_persistent (~> 1.1)
       multipart-post (>= 1.2, < 3)
+      ruby2_keywords (>= 0.0.4)
+    faraday-em_http (1.0.0)
+    faraday-em_synchrony (1.0.0)
+    faraday-excon (1.1.0)
+    faraday-net_http (1.0.1)
+    faraday-net_http_persistent (1.1.0)
+    git (1.8.1)
+      rchardet (~> 1.8)
     jwt (2.1.0)
-    multipart-post (2.0.0)
+    multipart-post (2.1.1)
     mustermann (1.0.3)
-    octokit (4.13.0)
+    octokit (4.21.0)
+      faraday (>= 0.9)
       sawyer (~> 0.8.0, >= 0.5.3)
-    public_suffix (3.0.3)
+    parallel (1.20.1)
+    parser (3.0.1.1)
+      ast (~> 2.4.1)
+    public_suffix (4.0.6)
     rack (2.2.2)
     rack-protection (2.0.4)
       rack
-    sawyer (0.8.1)
-      addressable (>= 2.3.5, < 2.6)
-      faraday (~> 0.8, < 1.0)
+    rainbow (3.0.0)
+    rchardet (1.8.0)
+    regexp_parser (2.1.1)
+    rexml (3.2.5)
+    rubocop (1.17.0)
+      parallel (~> 1.10)
+      parser (>= 3.0.0.0)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 1.8, < 3.0)
+      rexml
+      rubocop-ast (>= 1.7.0, < 2.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 1.4.0, < 3.0)
+    rubocop-ast (1.7.0)
+      parser (>= 3.0.1.1)
+    ruby-progressbar (1.11.0)
+    ruby2_keywords (0.0.4)
+    sawyer (0.8.2)
+      addressable (>= 2.3.5)
+      faraday (> 0.8, < 2.0)
     sinatra (2.0.4)
       mustermann (~> 1.0)
       rack (~> 2.0)
       rack-protection (= 2.0.4)
       tilt (~> 2.0)
     tilt (2.0.8)
+    unicode-display_width (2.0.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   dotenv
+  git
   jwt (~> 2.1)
-  octokit (~> 4.0)
+  octokit (~> 4.21)
+  rubocop
   sinatra (~> 2.0)
 
 BUNDLED WITH
-   1.17.1
+   1.17.2
