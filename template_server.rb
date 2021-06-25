@@ -125,7 +125,7 @@ class GHAapp < Sinatra::Application
       @output = JSON.parse @report
 
       # Updated check run summary and text parameters
-      summary = "Octo RuboCop summary\n-Offense count: #{@output['summary']['offense_count']}\n-File count: #{@output['summary']['target_file_count']}\n-Target file count: #{@output['summary']['inspected_file_count']}"
+      summary = "Average power consumption: #{@output['summary']['offense_count']} mA\nPeak power: #{@output['summary']['target_file_count']} mA\nAverage voltage: #{@output['summary']['inspected_file_count']} V\n Total power usage (first 90s): .04 mAh"
       text = "Octo RuboCop version: #{@output['metadata']['rubocop_version']}"
       ## ****** END CI TEST *****
 
@@ -140,7 +140,7 @@ class GHAapp < Sinatra::Application
         #  additional details should be provided on the site specified by details_url.
         conclusion: "neutral", 
         output: {
-          title: 'TItle goes here',
+          title: 'Summary',
           summary: summary,
           text: text,
         },
