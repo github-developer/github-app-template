@@ -112,61 +112,18 @@ class GHAapp < Sinatra::Application
 
       clone_repository(full_repo_name, repository, head_sha)
 
+      # Build image from source 
+
+      # Flash ring with binary
+
+      # Turn on Joulescope and start measuring 
+
       # Run RuboCop on all files in the repository
       @report = `rubocop '#{repository}' --format json`
       logger.debug @report
       `rm -rf #{repository}`
       @output = JSON.parse @report
-      annotations = []
-      # You can create a maximum of 50 annotations per request to the Checks
-      # API. To add more than 50 annotations, use the "Update a check run" API
-      # endpoint. This example code limits the number of annotations to 50.
-      # See /rest/reference/checks#update-a-check-run
-      # for details.
-      max_annotations = 50
 
-      # RuboCop reports the number of errors found in "offense_count"
-      if @output['summary']['offense_count'] == 0
-        conclusion = 'success'
-      else
-        conclusion = 'neutral'
-        @output['files'].each do |file|
-
-          # Only parse offenses for files in this app's repository
-          file_path = file['path'].gsub(/#{repository}\//,'')
-          annotation_level = 'notice'
-
-          # Parse each offense to get details and location
-          file['offenses'].each do |offense|
-            # Limit the number of annotations to 50
-            next if max_annotations == 0
-            max_annotations -= 1
-
-            start_line   = offense['location']['start_line']
-            end_line     = offense['location']['last_line']
-            start_column = offense['location']['start_column']
-            end_column   = offense['location']['last_column']
-            message      = offense['message']
-
-            # Create a new annotation for each error
-            annotation = {
-              path: file_path,
-              start_line: start_line,
-              end_line: end_line,
-              start_column: start_column,
-              end_column: end_column,
-              annotation_level: annotation_level,
-              message: message
-            }
-            # Annotations only support start and end columns on the same line
-            if start_line == end_line
-              annotation.merge({start_column: start_column, end_column: end_column})
-            end
-
-            annotations.push(annotation)
-          end
-        end
-      end
       # Updated check run summary and text parameters
       summary = "Octo RuboCop summary\n-Offense count: #{@output['summary']['offense_count']}\n-File count: #{@output['summary']['target_file_count']}\n-Target file count: #{@output['summary']['inspected_file_count']}"
       text = "Octo RuboCop version: #{@output['metadata']['rubocop_version']}"
@@ -177,18 +134,16 @@ class GHAapp < Sinatra::Application
         @payload['repository']['full_name'],
         @payload['check_run']['id'],
         status: 'completed',
-        conclusion: conclusion,
+        ## Conclusion: 
+        #  Can be one of action_required, cancelled, failure, neutral, success, 
+        #  skipped, stale, or timed_out. When the conclusion is action_required, 
+        #  additional details should be provided on the site specified by details_url.
+        conclusion: "neutral", 
         output: {
           title: 'Octo RuboCop',
           summary: summary,
           text: text,
-          annotations: annotations
         },
-        actions: [{
-          label: 'Fix this',
-          description: 'Automatically fix all linter notices.',
-          identifier: 'fix_rubocop_notices'
-        }],
         accept: 'application/vnd.github.v3+json'
       )
     end
