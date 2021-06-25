@@ -140,7 +140,7 @@ class GHAapp < Sinatra::Application
         #  additional details should be provided on the site specified by details_url.
         conclusion: "neutral", 
         output: {
-          title: 'Octo RuboCop',
+          title: 'TItle goes here',
           summary: summary,
           text: text,
         },
@@ -153,7 +153,7 @@ class GHAapp < Sinatra::Application
         # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
         @payload['repository']['full_name'],
         # [String] The name of your check run.
-        'Octo RuboCop',
+        'P7 uses < 2mA average 90s after reset',
         # [String] The SHA of the commit to check 
         # The payload structure differs depending on whether a check run or a check suite event occurred.
         @payload['check_run'].nil? ? @payload['check_suite']['head_sha'] : @payload['check_run']['head_sha'],
