@@ -125,8 +125,8 @@ class GHAapp < Sinatra::Application
       @output = JSON.parse @report
 
       # Updated check run summary and text parameters
-      summary = "Average power consumption: #{@output['summary']['offense_count']} mA\nPeak power: #{@output['summary']['target_file_count']} mA\nAverage voltage: #{@output['summary']['inspected_file_count']} V\n Total power usage (first 90s): .04 mAh"
-      text = "Octo RuboCop version: #{@output['metadata']['rubocop_version']}"
+      summary = "Average power consumption: #{@output['summary']['offense_count']} mA\nPeak power: #{@output['summary']['target_file_count']} mA\nAverage voltage: #{@output['summary']['inspected_file_count']} V\n Total power usage (first 90s): .04 mAh \n\n[image of power consumption here]"
+      text = "None"
       ## ****** END CI TEST *****
 
       # Mark the check run as complete! And if there are warnings, share them.
@@ -140,7 +140,7 @@ class GHAapp < Sinatra::Application
         #  additional details should be provided on the site specified by details_url.
         conclusion: "neutral", 
         output: {
-          title: 'Summary',
+          title: @payload['check_run']['name'],
           summary: summary,
           text: text,
         },
