@@ -7,6 +7,7 @@ require 'jwt'         # Authenticates a GitHub App
 require 'time'        # Gets ISO 8601 representation of a Time object
 require 'logger'      # Logs debug statements
 require 'git'
+require 'httparty'
 
 set :port, 3000
 set :bind, '0.0.0.0'
@@ -101,10 +102,22 @@ class GHAapp < Sinatra::Application
       @installation_client.update_check_run(
         @payload['repository']['full_name'],
         @payload['check_run']['id'],
-        status: 'in_progress',
+        status: 'queued',
         accept: 'application/vnd.github.v3+json'
       )
 
+      #### Download the built firmware from the blessed source: CircleCI ####
+      response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=40&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+      if response.code == 200
+        response_parsed = JSON.parse(response)
+        # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
+        circleCI_jobs = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha']}
+        pp "CircleCI jobs with hash" + @payload['check_run']['head_sha']
+        pp circleCI_jobs
+      end
+
+      #### End "Download the firmware" section ####
+      
       # ***** RUN A CI TEST *****
       full_repo_name = @payload['repository']['full_name']
       repository     = @payload['repository']['name']
