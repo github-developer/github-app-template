@@ -12,6 +12,7 @@ require 'httparty'
 set :port, 3000
 set :bind, '0.0.0.0'
 
+REPOSITORY_NAME = "dialog_14683_scratch"    #prevent running on other repositories 
 
 # This is template code to create a GitHub App server.
 # You can read more about GitHub Apps here: # https://developer.github.com/apps/
@@ -99,6 +100,10 @@ class GHAapp < Sinatra::Application
       # to 'in_progress' and run the CI process. When the CI finishes, you'll
       # update the check run status to 'completed' and add the CI results.
 
+      if @payload['repository']['name'] != REPOSITORY_NAME
+        return 
+      end
+
       @installation_client.update_check_run(
         @payload['repository']['full_name'],
         @payload['check_run']['id'],
@@ -149,7 +154,7 @@ class GHAapp < Sinatra::Application
       )
     end
 
-    MAX_RETRY_TIME_ELAPSED = 60 * 0.5  # wait 14 minutes maximum 
+    MAX_RETRY_TIME_ELAPSED = 60 * 14  # wait 14 minutes maximum 
     RETRY_PERIOD = 15  # seconds
       
     #### Download the pre-built firmware from the blessed source: CircleCI ####
@@ -215,12 +220,53 @@ class GHAapp < Sinatra::Application
 
       # Download the firmware from the CircleCI artifact URL
       puts "Downloading firmware"
-
+      begin 
+        download_file(artifact_URL)
+      rescue RuntimeError => e
+        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+          puts "Error: max timeout reached." 
+          return "max_timeout_reached"
+        end 
+        puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
+        sleep(RETRY_PERIOD)
+        retry
+      end
 
     end 
 
+    def download_file(url)
+      dir = File.expand_path(File.join(File.dirname(__FILE__), '.', 'lib'))
+      puts "Dir to download: " + dir
+      # download file without using the memory
+      response = nil
+      filename = "freertos_retarget.bin"
+
+      File.open(filename, "w") do |file|
+        response = HTTParty.get(url, :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']},  stream_body: true) do |fragment|
+          if [301, 302].include?(fragment.code)
+            print "skip writing for redirect"
+          elsif fragment.code == 200
+            print "."
+            file.write(fragment)
+          else
+            raise StandardError, "Non-success status code while streaming #{fragment.code}"
+          end
+        end
+      end
+      puts
+
+      pp "Success: #{response.success?}"
+      pp File.stat(filename).inspect
+      # File.unlink(filename)
+    end
+
     # Create a new check run with the status queued
     def create_check_run
+      if @payload['repository']['name'] != REPOSITORY_NAME
+        return 
+      end
+
       @installation_client.create_check_run(
         # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
         @payload['repository']['full_name'],
