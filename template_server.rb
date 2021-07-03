@@ -106,17 +106,7 @@ class GHAapp < Sinatra::Application
         accept: 'application/vnd.github.v3+json'
       )
 
-      #### Download the built firmware from the blessed source: CircleCI ####
-      response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=40&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
-      if response.code == 200
-        response_parsed = JSON.parse(response)
-        # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
-        circleCI_jobs = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha']}
-        pp "CircleCI jobs with hash" + @payload['check_run']['head_sha']
-        pp circleCI_jobs
-      end
-
-      #### End "Download the firmware" section ####
+      download_firmware
       
       # ***** RUN A CI TEST *****
       full_repo_name = @payload['repository']['full_name']
@@ -124,8 +114,6 @@ class GHAapp < Sinatra::Application
       head_sha       = @payload['check_run']['head_sha']
 
       clone_repository(full_repo_name, repository, head_sha)
-
-      # Build image from source 
 
       # Flash ring with binary
 
@@ -160,6 +148,43 @@ class GHAapp < Sinatra::Application
         accept: 'application/vnd.github.v3+json'
       )
     end
+
+    MAX_RETRY_TIME_ELAPSED = 60 * 0.5  # wait 14 minutes maximum 
+    RETRY_PERIOD = 15  # seconds
+      
+    #### Download the pre-built firmware from the blessed source: CircleCI ####
+    def download_firmware
+      retry_time_elapsed = 0 
+      
+      begin 
+        response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=40&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+        
+        if response.code == 404 
+          raise "HTTP Response 404. Check CircleCI API key"  
+        end
+        if response.code != 200
+          raise "HTTP Response #{response.code}"
+        end
+      rescue RuntimeError => e
+        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+          puts "Error: max timeout reached." 
+          return "max_timeout_reached"
+        end 
+        puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
+        sleep(RETRY_PERIOD)
+        retry
+      end
+
+
+      response_parsed = JSON.parse(response)
+      # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
+      circleCI_jobs = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha'] && job["build_parameters"]["CIRCLE_JOB"] == "pack_images"}
+      pp "CircleCI jobs with hash " + @payload['check_run']['head_sha'] + " and pack_images"
+      pp circleCI_jobs
+
+    end 
+
     # Create a new check run with the status queued
     def create_check_run
       @installation_client.create_check_run(
