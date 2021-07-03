@@ -156,6 +156,7 @@ class GHAapp < Sinatra::Application
     def download_firmware
       retry_time_elapsed = 0 
       
+      # Fetch the CircleCI job that contains the firmware. There should only be one match. 
       begin 
         response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=40&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
         
@@ -176,12 +177,45 @@ class GHAapp < Sinatra::Application
         retry
       end
 
-
       response_parsed = JSON.parse(response)
       # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
       circleCI_jobs = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha'] && job["build_parameters"]["CIRCLE_JOB"] == "pack_images"}
-      pp "CircleCI jobs with hash " + @payload['check_run']['head_sha'] + " and pack_images"
-      pp circleCI_jobs
+      puts "CircleCI \"pack_images\" job found with hash " + @payload['check_run']['head_sha'] 
+
+      # Read CircleCI job status. Is it finished yet? 
+
+
+      # Fetch the CircleCI artifact URLs of this CircleCI job 
+      build_num = circleCI_jobs[0]['build_num']
+      puts "Fetching artifact URL for build num " + build_num.to_s
+      begin 
+        response = HTTParty.get("https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch/" + build_num.to_s + "/artifacts", :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+        
+        if response.code == 404 
+          raise "HTTP Response 404. Check CircleCI API key"  
+        end
+        if response.code != 200
+          raise "HTTP Response #{response.code}"
+        end
+      rescue RuntimeError => e
+        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+          puts "Error: max timeout reached." 
+          return "max_timeout_reached"
+        end 
+        puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
+        sleep(RETRY_PERIOD)
+        retry
+      end
+      # Filter the artifacts for only the P7 reelase 
+      response_parsed = JSON.parse(response)
+      artifact_descriptors = response_parsed.select{|descriptor| descriptor["path"] == "~/builds/freertos_retarget/Happy_P7_QSPI_Release/freertos_retarget.bin"}
+      artifact_URL = artifact_descriptors[0]["url"]
+      puts "Firmware URL: " + artifact_URL
+
+      # Download the firmware from the CircleCI artifact URL
+      puts "Downloading firmware"
+
 
     end 
 
