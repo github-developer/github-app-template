@@ -240,7 +240,7 @@ class GHAapp < Sinatra::Application
       puts "Dir to download: " + dir
       # download file without using the memory
       response = nil
-      filename = "freertos_retarget.bin"
+      filename = (url.split('/', -1))[-1] # Get the end of the URL, e.g. "freertos_retarget.bin"
 
       File.open(filename, "w") do |file|
         response = HTTParty.get(url, :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']},  stream_body: true) do |fragment|
@@ -259,6 +259,7 @@ class GHAapp < Sinatra::Application
       pp "Success: #{response.success?}"
       pp File.stat(filename).inspect
       # File.unlink(filename)
+      return "success"
     end
 
     # Create a new check run with the status queued
