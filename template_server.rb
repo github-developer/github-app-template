@@ -163,13 +163,41 @@ class GHAapp < Sinatra::Application
       
       # Fetch the CircleCI job that contains the firmware. There should only be one match. 
       begin 
-        response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=40&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
-        
-        if response.code == 404 
-          raise "HTTP Response 404. Check CircleCI API key"  
+        begin 
+          response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=40&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+          
+          if response.code == 404 
+            raise "HTTP Response 404. Check CircleCI API key"  
+          end
+          if response.code != 200
+            raise "HTTP Response #{response.code}"
+          end
+        rescue RuntimeError => e
+          if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+            puts "Error: max timeout reached." 
+            return "max_timeout_reached"
+          end 
+          puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+          retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
+          sleep(RETRY_PERIOD)
+          retry
         end
-        if response.code != 200
-          raise "HTTP Response #{response.code}"
+
+        response_parsed = JSON.parse(response)
+        # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
+        circleCI_jobs = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha'] && job["build_parameters"]["CIRCLE_JOB"] == "pack_images"}
+        if circleCI_jobs.length() == 0
+          raise "CircleCI pack_images job not created yet. Commit " + @payload['check_run']['head_sha'][0..6]
+        else  
+          # Check if job is finished yet 
+          if circleCI_jobs[0]["status"] == "failed" || circleCI_jobs[0]["status"] == "cancelled" || circleCI_jobs[0]["status"] == "blocked" 
+            raise "pack_images job failed-blocked-cancelled"
+            return "pack_images job failed-blocked-cancelled"
+          elsif circleCI_jobs[0]["status"] != "success"
+            raise "pack_images job status: " + circleCI_jobs[0]["status"]
+          end
+          # else job is a success 
+          puts "CircleCI \"pack_images\" job found for commit " + @payload['check_run']['head_sha'] 
         end
       rescue RuntimeError => e
         if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
@@ -180,15 +208,9 @@ class GHAapp < Sinatra::Application
         retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
         sleep(RETRY_PERIOD)
         retry
-      end
-
-      response_parsed = JSON.parse(response)
-      # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
-      circleCI_jobs = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha'] && job["build_parameters"]["CIRCLE_JOB"] == "pack_images"}
-      puts "CircleCI \"pack_images\" job found with hash " + @payload['check_run']['head_sha'] 
-
-      # Read CircleCI job status. Is it finished yet? 
-
+      
+        retry 
+      end      
 
       # Fetch the CircleCI artifact URLs of this CircleCI job 
       build_num = circleCI_jobs[0]['build_num']
