@@ -12,6 +12,8 @@ require 'httparty'
 set :port, 3000
 set :bind, '0.0.0.0'
 
+DIALOG_WORKSPACE = "/c/hh/dialog_14683_scratch"
+
 REPOSITORY_NAME = "dialog_14683_scratch"    #prevent running on other repositories 
 
 # This is template code to create a GitHub App server.
@@ -30,6 +32,9 @@ REPOSITORY_NAME = "dialog_14683_scratch"    #prevent running on other repositori
 #
 # Have fun!
 #
+
+BOOTLOADER_UTILS_PATH="#{DIALOG_WORKSPACE}/utilities/scripts/qspi"
+HPY_UTILS_PATH="#{DIALOG_WORKSPACE}/utilities/scripts/hpy/v11"
 
 class GHAapp < Sinatra::Application
 
@@ -112,6 +117,8 @@ class GHAapp < Sinatra::Application
       )
 
       download_firmware
+      program_p7
+      # Turn on Joulescope and start measuring 
       
       # ***** RUN A CI TEST *****
       full_repo_name = @payload['repository']['full_name']
@@ -120,9 +127,6 @@ class GHAapp < Sinatra::Application
 
       clone_repository(full_repo_name, repository, head_sha)
 
-      # Flash ring with binary
-
-      # Turn on Joulescope and start measuring 
 
       # Run RuboCop on all files in the repository
       @report = `rubocop '#{repository}' --format json`
@@ -283,6 +287,12 @@ class GHAapp < Sinatra::Application
       # File.unlink(filename)
       return "success"
     end
+
+    def program_p7
+      # Call script that flashes the firmware onto P7
+      output = `bash ./reprogram_p7.sh`
+      puts output
+    end 
 
     # Create a new check run with the status queued
     def create_check_run
