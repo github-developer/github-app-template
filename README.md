@@ -17,14 +17,19 @@ You can use this GitHub App template code as a foundation to create any GitHub A
 
 ## Install
 
-To run the code, make sure you have [Bundler](http://gembundler.com/) installed; then enter `bundle install` on the command line.
+1. Install Ruby on Windows: https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.4-1/rubyinstaller-devkit-2.7.4-1-x64.exe
+1. To run the code, make sure you have [Bundler](http://gembundler.com/) installed; then enter `bundle install` on the command line.
+
+1. Install Node
+1. `npm install --global smee-client`
 
 ## Set environment variables
 
 1. Create a copy of the `.env-example` file called `.env`.
-2. Add your GitHub App's private key, app ID, and webhook secret to the `.env` file.
+2. Add your GitHub App's private key, app ID, and webhook secret and the CircleCI API key to the `.env` file.
 
 ## Run the server
 
-1. Run `ruby template_server.rb` on the command line.
-1. View the default Sinatra app at `localhost:3000`.
+1. `smee -u https://smee.io/8WbQg5S8Wv7iyd  --path /event_handler --port 3000`   
+2. In another terminal window: `bundle exec ruby template_server.rb` 
+3. View the default Sinatra app at `localhost:3000`.
