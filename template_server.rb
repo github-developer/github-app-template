@@ -118,6 +118,7 @@ class GHAapp < Sinatra::Application
 
       download_firmware
       program_p7
+      results = joulescope_measurement
       # Turn on Joulescope and start measuring 
       
       # ***** RUN A CI TEST *****
@@ -135,7 +136,6 @@ class GHAapp < Sinatra::Application
       @output = JSON.parse @report
 
       # Updated check run summary and text parameters
-      summary = "Average power consumption: #{@output['summary']['offense_count']} mA\nPeak power: #{@output['summary']['target_file_count']} mA\nAverage voltage: #{@output['summary']['inspected_file_count']} V\n Total power usage (first 90s): .04 mAh \n\n[image of power consumption here]"
       text = "None"
       ## ****** END CI TEST *****
 
@@ -151,8 +151,8 @@ class GHAapp < Sinatra::Application
         conclusion: "neutral", 
         output: {
           title: @payload['check_run']['name'],
-          summary: summary,
-          text: text,
+          summary: "image here",
+          text: results,
         },
         accept: 'application/vnd.github.v3+json'
       )
@@ -293,6 +293,14 @@ class GHAapp < Sinatra::Application
       output = `bash ./reprogram_p7.sh`
       puts output
     end 
+
+    def joulescope_measurement
+      puts "Starting Joulescope measurement"
+      # output = `python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3 --record`
+      output = `python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3`
+      puts output
+      return output
+    end
 
     # Create a new check run with the status queued
     def create_check_run

@@ -18,18 +18,39 @@ You can use this GitHub App template code as a foundation to create any GitHub A
 ## Install
 
 1. Install Ruby on Windows: https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.4-1/rubyinstaller-devkit-2.7.4-1-x64.exe
-1. To run the code, make sure you have [Bundler](http://gembundler.com/) installed; then enter `bundle install` on the command line.
+2. In the MINGW32 shell:
+```
+gem install bundler
+```
 
-1. Install Node
-1. `npm install --global smee-client`
+```
+Successfully installed bundler-2.2.23
+Parsing documentation for bundler-2.2.23
+Installing ri documentation for bundler-2.2.23
+Done installing documentation for bundler after 7 seconds
+1 gem installed
+```
+
+3. To run the code, make sure you have [Bundler](http://gembundler.com/) installed; then enter `bundle install` on the command line.
+
+4. Install Node
+5. `npm install --global smee-client`
+6. `cd pyjoulescope`
+7. `pip3 install -U -r requirements.txt`
+8. Connect the OUT0 GPIO in the back of Joulescope to the IN0 GPIO in the back of Joulescope
 
 ## Set environment variables
 
 1. Create a copy of the `.env-example` file called `.env`.
-2. Add your GitHub App's private key, app ID, and webhook secret and the CircleCI API key to the `.env` file.
+2. Change the "Dialog workspace" directory in `reprogram_p7.sh`
+3. Add your GitHub App's private key, app ID, and webhook secret and the CircleCI API key to the `.env` file.
 
 ## Run the server
 
 1. `smee -u https://smee.io/8WbQg5S8Wv7iyd  --path /event_handler --port 3000`   
 2. In another terminal window: `bundle exec ruby template_server.rb` 
 3. View the default Sinatra app at `localhost:3000`.
+
+
+## Notes
+The Joulescope Python scripts fail to run if the Joulescope GUI is open. 
