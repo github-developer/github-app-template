@@ -126,14 +126,11 @@ class GHAapp < Sinatra::Application
       repository     = @payload['repository']['name']
       head_sha       = @payload['check_run']['head_sha']
 
-      clone_repository(full_repo_name, repository, head_sha)
 
 
       # Run RuboCop on all files in the repository
-      @report = `rubocop '#{repository}' --format json`
-      logger.debug @report
+      clone_repository(full_repo_name, repository, head_sha)
       `rm -rf #{repository}`
-      @output = JSON.parse @report
 
       # Updated check run summary and text parameters
       text = "None"
@@ -151,7 +148,7 @@ class GHAapp < Sinatra::Application
         conclusion: "neutral", 
         output: {
           title: @payload['check_run']['name'],
-          summary: "image here",
+          summary: "image here **markdown test** <i>Italics test</i>",
           text: results,
         },
         accept: 'application/vnd.github.v3+json'
@@ -178,10 +175,10 @@ class GHAapp < Sinatra::Application
           end
         rescue RuntimeError => e
           if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-            puts "Error: max timeout reached." 
+            logger.debug "Error: max timeout reached." 
             return "max_timeout_reached"
           end 
-          puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+          logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
           retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
           sleep(RETRY_PERIOD)
           retry
@@ -201,14 +198,14 @@ class GHAapp < Sinatra::Application
             raise "pack_images job status: " + circleCI_jobs[0]["status"]
           end
           # else job is a success 
-          puts "CircleCI \"pack_images\" job found for commit " + @payload['check_run']['head_sha'] 
+          logger.debug "CircleCI \"pack_images\" job found for commit " + @payload['check_run']['head_sha'] 
         end
       rescue RuntimeError => e
         if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-          puts "Error: max timeout reached." 
+          logger.debug "Error: max timeout reached." 
           return "max_timeout_reached"
         end 
-        puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
         retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
         sleep(RETRY_PERIOD)
         retry
@@ -218,7 +215,7 @@ class GHAapp < Sinatra::Application
 
       # Fetch the CircleCI artifact URLs of this CircleCI job 
       build_num = circleCI_jobs[0]['build_num']
-      puts "Fetching artifact URL for build num " + build_num.to_s
+      logger.debug "Fetching artifact URL for build num " + build_num.to_s
       begin 
         response = HTTParty.get("https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch/" + build_num.to_s + "/artifacts", :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
         
@@ -230,10 +227,10 @@ class GHAapp < Sinatra::Application
         end
       rescue RuntimeError => e
         if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-          puts "Error: max timeout reached." 
+          logger.debug "Error: max timeout reached." 
           return "max_timeout_reached"
         end 
-        puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
         retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
         sleep(RETRY_PERIOD)
         retry
@@ -242,18 +239,18 @@ class GHAapp < Sinatra::Application
       response_parsed = JSON.parse(response)
       artifact_descriptors = response_parsed.select{|descriptor| descriptor["path"] == "~/builds/freertos_retarget/Happy_P7_QSPI_Release/freertos_retarget.bin"}
       artifact_URL = artifact_descriptors[0]["url"]
-      puts "Firmware URL: " + artifact_URL
+      logger.debug "Firmware URL: " + artifact_URL
 
       # Download the firmware from the CircleCI artifact URL
-      puts "Downloading firmware"
+      logger.debug "Downloading firmware"
       begin 
         download_file(artifact_URL)
       rescue RuntimeError => e
         if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-          puts "Error: max timeout reached." 
+          logger.debug "Error: max timeout reached." 
           return "max_timeout_reached"
         end 
-        puts "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
         retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
         sleep(RETRY_PERIOD)
         retry
@@ -263,7 +260,7 @@ class GHAapp < Sinatra::Application
 
     def download_file(url)
       dir = File.expand_path(File.join(File.dirname(__FILE__), '.', 'lib'))
-      puts "Dir to download: " + dir
+      logger.debug "Dir to download: " + dir
       # download file without using the memory
       response = nil
       filename = (url.split('/', -1))[-1] # Get the end of the URL, e.g. "freertos_retarget.bin"
@@ -280,7 +277,7 @@ class GHAapp < Sinatra::Application
           end
         end
       end
-      puts
+      logger.debug
 
       pp "Success: #{response.success?}"
       pp File.stat(filename).inspect
@@ -291,14 +288,14 @@ class GHAapp < Sinatra::Application
     def program_p7
       # Call script that flashes the firmware onto P7
       output = `bash ./reprogram_p7.sh`
-      puts output
+      logger.debug output
     end 
 
     def joulescope_measurement
-      puts "Starting Joulescope measurement"
+      logger.debug "Starting Joulescope measurement"
       # output = `python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3 --record`
       output = `python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3`
-      puts output
+      logger.debug output
       return output
     end
 
