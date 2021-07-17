@@ -54,3 +54,6 @@ Done installing documentation for bundler after 7 seconds
 
 ## Notes
 The Joulescope Python scripts fail to run if the Joulescope GUI is open. 
+
+## Troubleshooting 
+All the calls to and from the Github API from this application are logged here: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
