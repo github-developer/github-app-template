@@ -128,6 +128,7 @@ class GHAapp < Sinatra::Application
 
 
 
+
       # Run RuboCop on all files in the repository
       clone_repository(full_repo_name, repository, head_sha)
       `rm -rf #{repository}`
@@ -242,7 +243,28 @@ class GHAapp < Sinatra::Application
       logger.debug "Firmware URL: " + artifact_URL
 
       # Download the firmware from the CircleCI artifact URL
-      logger.debug "Downloading firmware"
+      logger.debug "Downloading application firmware"
+      begin 
+        download_file(artifact_URL)
+      rescue RuntimeError => e
+        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+          logger.debug "Error: max timeout reached." 
+          return "max_timeout_reached"
+        end 
+        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
+        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
+        sleep(RETRY_PERIOD)
+        retry
+      end
+
+      # Filter the artifacts for only the bootloader
+      response_parsed = JSON.parse(response)
+      artifact_descriptors = response_parsed.select{|descriptor| descriptor["path"] == "~/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin"}
+      artifact_URL = artifact_descriptors[0]["url"]
+      logger.debug "Bootloader Firmware URL: " + artifact_URL
+
+      # Download the firmware from the CircleCI artifact URL
+      logger.debug "Downloading bootloader firmware"
       begin 
         download_file(artifact_URL)
       rescue RuntimeError => e
@@ -286,6 +308,7 @@ class GHAapp < Sinatra::Application
     end
 
     def program_p7
+      logger.debug "Flashing over JTAG"
       # Call script that flashes the firmware onto P7
       output = `bash ./reprogram_p7.sh`
       logger.debug output
