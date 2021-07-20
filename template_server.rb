@@ -182,25 +182,42 @@ class GHAapp < Sinatra::Application
         return "program_p7_failed"
       end
 
-      result = joulescope_measurement
       # Turn on Joulescope and start measuring 
+      result = joulescope_measurement
+
+      if (result.downcase).include?("error")
+        # Mark the check run as failed
+        @installation_client.update_check_run(
+          @payload['repository']['full_name'],
+          @payload['check_run']['id'],
+          status: 'completed',
+          ## Conclusion: 
+          #  Can be one of action_required, cancelled, failure, neutral, success, 
+          #  skipped, stale, or timed_out. When the conclusion is action_required, 
+          #  additional details should be provided on the site specified by details_url.
+          conclusion: "cancelled", 
+          output: {
+            title: @payload['check_run']['name'],
+            summary: "Joulescope error. Details below. Is Joulescope connected "\
+            "and no application other than this script using it? Close Joulescope GUI.",
+            text: result
+          },
+          accept: 'application/vnd.github.v3+json'
+        )
+
+        return "joulescope_measurement_failed"
+      end
       
-      # ***** RUN A CI TEST *****
+
+
+
+      # Remove JLS file because it takes up a lot of disk space 
+
+
       full_repo_name = @payload['repository']['full_name']
       repository     = @payload['repository']['name']
       head_sha       = @payload['check_run']['head_sha']
-
-
-
-
-      # Run RuboCop on all files in the repository
-      clone_repository(full_repo_name, repository, head_sha)
-      `rm -rf #{repository}`
-
-      # Updated check run summary and text parameters
-      text = "None"
-      ## ****** END CI TEST *****
-
+      
       # Mark the check run as complete! And if there are warnings, share them.
       @installation_client.update_check_run(
         @payload['repository']['full_name'],
@@ -210,10 +227,10 @@ class GHAapp < Sinatra::Application
         #  Can be one of action_required, cancelled, failure, neutral, success, 
         #  skipped, stale, or timed_out. When the conclusion is action_required, 
         #  additional details should be provided on the site specified by details_url.
-        conclusion: "neutral", 
+        conclusion: "success", 
         output: {
           title: @payload['check_run']['name'],
-          summary: "image here **markdown test** <i>Italics test</i>",
+          summary: "P7 programmed and measured successfully: image here **markdown test** <i>Italics test</i>",
           text: result,
         },
         accept: 'application/vnd.github.v3+json'
@@ -381,7 +398,8 @@ class GHAapp < Sinatra::Application
     def joulescope_measurement
       logger.debug "Starting Joulescope measurement"
       # output = `python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3 --record`
-      output = `python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3`
+      stdout, stderr, status = Open3.capture3("python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3")
+      output = stdout + stderr
       logger.debug output
       return output
     end
@@ -396,7 +414,7 @@ class GHAapp < Sinatra::Application
         # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
         @payload['repository']['full_name'],
         # [String] The name of your check run.
-        'P7 uses < 2mA average 90s after reset',
+        'P7 power usage average 90s after reset',
         # [String] The SHA of the commit to check 
         # The payload structure differs depending on whether a check run or a check suite event occurred.
         @payload['check_run'].nil? ? @payload['check_suite']['head_sha'] : @payload['check_run']['head_sha'],
