@@ -15,7 +15,8 @@ set :bind, '0.0.0.0'
 DIALOG_WORKSPACE = "/c/hh/dialog_14683_scratch"
 
 REPOSITORY_NAME = "dialog_14683_scratch"    #prevent running on other repositories 
-
+MAX_RETRY_TIME_ELAPSED = 60 * 14  # wait 14 minutes maximum to download firmware after starting the check run 
+    
 # This is template code to create a GitHub App server.
 # You can read more about GitHub Apps here: # https://developer.github.com/apps/
 #
@@ -116,7 +117,28 @@ class GHAapp < Sinatra::Application
         accept: 'application/vnd.github.v3+json'
       )
 
-      download_firmware
+
+      result = download_firmware
+      if result == "max_timeout_reached"
+        # Mark the check run as timed out
+        @installation_client.update_check_run(
+          @payload['repository']['full_name'],
+          @payload['check_run']['id'],
+          status: 'completed',
+          ## Conclusion: 
+          #  Can be one of action_required, cancelled, failure, neutral, success, 
+          #  skipped, stale, or timed_out. When the conclusion is action_required, 
+          #  additional details should be provided on the site specified by details_url.
+          conclusion: "timed_out", 
+          output: {
+            title: @payload['check_run']['name'],
+            summary: "Firmware download did not finish after #{MAX_RETRY_TIME_ELAPSED}s. Did CircleCI build successfully?",
+          },
+          accept: 'application/vnd.github.v3+json'
+        )
+        return result
+      end
+
       program_p7
       results = joulescope_measurement
       # Turn on Joulescope and start measuring 
@@ -156,13 +178,11 @@ class GHAapp < Sinatra::Application
       )
     end
 
-    MAX_RETRY_TIME_ELAPSED = 60 * 14  # wait 14 minutes maximum 
     RETRY_PERIOD = 15  # seconds
       
     #### Download the pre-built firmware from the blessed source: CircleCI ####
     def download_firmware
       retry_time_elapsed = 0 
-      
       # Fetch the CircleCI job that contains the firmware. There should only be one match. 
       begin 
         begin 
