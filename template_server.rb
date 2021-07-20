@@ -8,6 +8,7 @@ require 'time'        # Gets ISO 8601 representation of a Time object
 require 'logger'      # Logs debug statements
 require 'git'
 require 'httparty'
+require 'open3'
 
 set :port, 3000
 set :bind, '0.0.0.0'
@@ -139,8 +140,49 @@ class GHAapp < Sinatra::Application
         return result
       end
 
-      program_p7
-      results = joulescope_measurement
+      output = program_p7
+      if output.include?("cannot open gdb interface") 
+         # Mark the check run as failed
+         @installation_client.update_check_run(
+          @payload['repository']['full_name'],
+          @payload['check_run']['id'],
+          status: 'completed',
+          ## Conclusion: 
+          #  Can be one of action_required, cancelled, failure, neutral, success, 
+          #  skipped, stale, or timed_out. When the conclusion is action_required, 
+          #  additional details should be provided on the site specified by details_url.
+          conclusion: "cancelled", 
+          output: {
+            title: @payload['check_run']['name'],
+            summary: "cannot open gdb interface. A cable is disconnected or the power is off",
+          },
+          accept: 'application/vnd.github.v3+json'
+        )
+
+        return "program_p7_failed"
+      elsif output.include?("done.") == false
+        # Mark the check run as failed
+        @installation_client.update_check_run(
+          @payload['repository']['full_name'],
+          @payload['check_run']['id'],
+          status: 'completed',
+          ## Conclusion: 
+          #  Can be one of action_required, cancelled, failure, neutral, success, 
+          #  skipped, stale, or timed_out. When the conclusion is action_required, 
+          #  additional details should be provided on the site specified by details_url.
+          conclusion: "cancelled", 
+          output: {
+            title: @payload['check_run']['name'],
+            summary: "Unknown error. Details below",
+            text: output
+          },
+          accept: 'application/vnd.github.v3+json'
+        )
+
+        return "program_p7_failed"
+      end
+
+      result = joulescope_measurement
       # Turn on Joulescope and start measuring 
       
       # ***** RUN A CI TEST *****
@@ -172,7 +214,7 @@ class GHAapp < Sinatra::Application
         output: {
           title: @payload['check_run']['name'],
           summary: "image here **markdown test** <i>Italics test</i>",
-          text: results,
+          text: result,
         },
         accept: 'application/vnd.github.v3+json'
       )
@@ -330,8 +372,10 @@ class GHAapp < Sinatra::Application
     def program_p7
       logger.debug "Flashing over JTAG"
       # Call script that flashes the firmware onto P7
-      output = `bash ./reprogram_p7.sh`
+      stdout, stderr, status = Open3.capture3("bash ./reprogram_p7.sh")
+      output = stdout + stderr
       logger.debug output
+      return output
     end 
 
     def joulescope_measurement
