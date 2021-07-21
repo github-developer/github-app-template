@@ -9,6 +9,7 @@ require 'logger'      # Logs debug statements
 require 'git'
 require 'httparty'
 require 'open3'
+require 'thread'
 
 set :port, 3000
 set :bind, '0.0.0.0'
@@ -50,6 +51,8 @@ class GHAapp < Sinatra::Application
   # The GitHub App's identifier (type integer) set when registering an app.
   APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
 
+  semaphore = Mutex.new
+
   # Turn on Sinatra's verbose logging during development
   configure :development do
     set :logging, Logger::DEBUG
@@ -73,12 +76,16 @@ class GHAapp < Sinatra::Application
     when 'check_run'
       # Check that the event is being sent to this app
       if @payload['check_run']['app']['id'].to_s === APP_IDENTIFIER
-        case @payload['action']
-        when 'created'
-          initiate_check_run
-        when 'rerequested'
-          create_check_run
-        end
+        a = Thread.new {
+          semaphore.synchronize {
+            case @payload['action']          
+            when 'created'
+              initiate_check_run
+            when 'rerequested'
+              create_check_run
+            end
+          }
+        }
       end
     when 'check_suite'
       # A new check_suite has been created. Create a new check run with status queued
