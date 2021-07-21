@@ -145,6 +145,24 @@ class GHAapp < Sinatra::Application
           accept: 'application/vnd.github.v3+json'
         )
         return result
+      elsif result == "job-failed-blocked-canceled"
+
+        @installation_client.update_check_run(
+          @payload['repository']['full_name'],
+          @payload['check_run']['id'],
+          status: 'completed',
+          ## Conclusion: 
+          #  Can be one of action_required, cancelled, failure, neutral, success, 
+          #  skipped, stale, or timed_out. When the conclusion is action_required, 
+          #  additional details should be provided on the site specified by details_url.
+          conclusion: "cancelled", 
+          output: {
+            title: @payload['check_run']['name'],
+            summary: "CircleCI job failed/blocked/canceled. No firmware to measure.",
+          },
+          accept: 'application/vnd.github.v3+json'
+        )
+        return result 
       end
 
       output = program_p7
@@ -273,16 +291,24 @@ class GHAapp < Sinatra::Application
 
         response_parsed = JSON.parse(response)
         # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
-        circleCI_jobs = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha'] && job["build_parameters"]["CIRCLE_JOB"] == "pack_images"}
-        if circleCI_jobs.length() == 0
+        circleCI_jobs_for_this_commit = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha']}
+        circleCI_jobs_failed = circleCI_jobs_for_this_commit.select{|job| job["status"] == "canceled" || job["status"] == "failed" || job["status"] == "blocked"}
+        circleCI_jobs_pack_images = circleCI_jobs_for_this_commit.select{|job| job["build_parameters"]["CIRCLE_JOB"] == "pack_images"}
+
+        if circleCI_jobs_failed.length > 0
+          # One of the CircleCI jobs was canclled or failed. 
+          # Failed job = did not build properly 
+          # cancelled job = A newer commit in the same pull request was submitted before this job could finish 
+          # (there are two different spellings for cancelled. CircleCI uses "canceled" and Github uses "cancelled")
+          # in either case, this entire script should just stop for this Github commit 
+          logger.debug "At least one CircleCI job failed/blocked/canceled for commit " + @payload['check_run']['head_sha'][0..6] 
+          return "job-failed-blocked-canceled"
+        elsif circleCI_jobs_pack_images.length() == 0
           raise "CircleCI pack_images job not created yet. Commit " + @payload['check_run']['head_sha'][0..6]
         else  
           # Check if job is finished yet 
-          if circleCI_jobs[0]["status"] == "failed" || circleCI_jobs[0]["status"] == "cancelled" || circleCI_jobs[0]["status"] == "blocked" 
-            raise "pack_images job failed-blocked-cancelled"
-            return "pack_images job failed-blocked-cancelled"
-          elsif circleCI_jobs[0]["status"] != "success"
-            raise "pack_images job status: " + circleCI_jobs[0]["status"]
+          if circleCI_jobs_pack_images[0]["status"] != "success"
+            raise "pack_images job status: " + circleCI_jobs_pack_images[0]["status"]
           end
           # else job is a success 
           logger.debug "CircleCI \"pack_images\" job found for commit " + @payload['check_run']['head_sha'] 
@@ -301,7 +327,7 @@ class GHAapp < Sinatra::Application
       end      
 
       # Fetch the CircleCI artifact URLs of this CircleCI job 
-      build_num = circleCI_jobs[0]['build_num']
+      build_num = circleCI_jobs_pack_images[0]['build_num']
       logger.debug "Fetching artifact URL for build num " + build_num.to_s
       begin 
         response = HTTParty.get("https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch/" + build_num.to_s + "/artifacts", :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
