@@ -245,7 +245,7 @@ class GHAapp < Sinatra::Application
       # Fetch the CircleCI job that contains the firmware. There should only be one match. 
       begin 
         begin 
-          response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=40&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+          response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=100&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
           
           if response.code == 404 
             raise "HTTP Response 404. Check CircleCI API key"  
