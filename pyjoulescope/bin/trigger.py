@@ -283,9 +283,9 @@ class Capture:
         line = ','.join(results)
         
         if self._args.display_stats:
-            if self._count == 1:
-                print(COLUMNS)
-            print(line)
+            
+            print(list(zip(COLUMNS.split(","), results)))
+
         if self._csv is not None:
             self._csv.write(line + '\n')
             self._csv.flush()
