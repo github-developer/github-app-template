@@ -10,6 +10,8 @@ require 'git'
 require 'httparty'
 require 'open3'
 require 'thread'
+require 'date'
+require 'aws-sdk-s3'
 
 set :port, 3000
 set :bind, '0.0.0.0'
@@ -207,6 +209,12 @@ class GHAapp < Sinatra::Application
         return "program_p7_failed"
       end
 
+      stdout, stderr, status = Open3.capture3("taskkill /f /im joulescope.exe")
+
+      # Prevent duplicate files from taking up a lot of disk space 
+      `rm -rf *.jls`
+      `rm -rf *.png`
+
       # Turn on Joulescope and start measuring 
       result = joulescope_measurement
 
@@ -233,11 +241,27 @@ class GHAapp < Sinatra::Application
         return "joulescope_measurement_failed"
       end
       
+      
+      date_time = (DateTime.now)
+      date_time = date_time.new_offset('+00:00')
+      image_file_name = date_time.strftime("%Y%m%d_%H%M%S.png")
+      jls_file_name = `ls *.jls`
+      jls_file_name = jls_file_name[0..-2] #remove the /r/n
 
+      logger.debug "Taking Joulescope screenshot"
+      # Open Joulescope window       
+      pid = spawn("\"C:\\Program Files (x86)\\Joulescope\\joulescope.exe\" ./#{jls_file_name}")
+      Process.detach(pid)
+      sleep(5) # Wait for the window to open
+      # Use screen capture program 
+      stdout, stderr, status = Open3.capture3("screenCapture.bat #{image_file_name} Joulescope:")
+      output = stdout + stderr
+      logger.debug output
+      
+      jls_URL = aws_s3_upload_file(jls_file_name)
+      img_URL = aws_s3_upload_file(image_file_name)
 
-
-      # Remove JLS file because it takes up a lot of disk space 
-
+      `taskkill /f /im joulescope.exe`
 
       full_repo_name = @payload['repository']['full_name']
       repository     = @payload['repository']['name']
@@ -255,7 +279,7 @@ class GHAapp < Sinatra::Application
         conclusion: "success", 
         output: {
           title: @payload['check_run']['name'],
-          summary: "P7 programmed and measured successfully: image here **markdown test** <i>Italics test</i>",
+          summary: "P7 programmed and measured successfully: image here </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 48h)</a></p><img src=\"#{img_URL}\">",
           text: result,
         },
         accept: 'application/vnd.github.v3+json'
@@ -430,11 +454,61 @@ class GHAapp < Sinatra::Application
 
     def joulescope_measurement
       logger.debug "Starting Joulescope measurement"
-      # output = `python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3 --record`
-      stdout, stderr, status = Open3.capture3("python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3")
+      stdout, stderr, status = Open3.capture3("python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 10 --display_stats --count 1 --init_power_off 3 --record")
       output = stdout + stderr
       logger.debug output
       return output
+    end
+
+    # Uploads an object to a bucket in Amazon Simple Storage Service (Amazon S3).
+    #
+    # Prerequisites:
+    #
+    # - An S3 bucket.
+    # - An object to upload to the bucket.
+    #
+    # @param s3_client [Aws::S3::Client] An initialized S3 client.
+    # @param bucket_name [String] The name of the bucket.
+    # @param object_key [String] The name of the object.
+    # @return [Boolean] true if the object was uploaded; otherwise, false.
+    # @example
+    #   exit 1 unless object_uploaded?(
+    #     Aws::S3::Client.new(region: 'us-east-1'),
+    #     'doc-example-bucket',
+    #     'my-file.txt'
+    #   )
+    def aws_s3_object_uploaded?(s3_client, bucket_name, object_key)
+      response = s3_client.put_object(
+        bucket: bucket_name,
+        key: object_key
+      )
+      if response.etag
+        return true
+      else
+        return false
+      end
+    rescue StandardError => e
+      logger.debug "Error uploading object: #{e.message}"
+      return false
+    end
+
+    # Full example call:
+    def aws_s3_upload_file(filename)
+      bucket_name = 'power-tester-artifacts'
+      object_key = filename
+      region = 'us-west-1'
+      s3_client = Aws::S3::Client.new(region: region,
+        access_key_id: ENV['AWS_S3_API_KEY_ID'],
+        secret_access_key: ENV['AWS_SECRET_ACCESS_KEY'])
+
+      if aws_s3_object_uploaded?(s3_client, bucket_name, object_key)
+        logger.debug "Object '#{object_key}' uploaded to bucket '#{bucket_name}'."
+        return "https://" + bucket_name + ".s3." + region + ".amazonaws.com/" + object_key
+
+      else
+        logger.debug "Object '#{object_key}' not uploaded to bucket '#{bucket_name}'."
+        return ""
+      end
     end
 
     # Create a new check run with the status queued
