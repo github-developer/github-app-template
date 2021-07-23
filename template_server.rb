@@ -279,7 +279,7 @@ class GHAapp < Sinatra::Application
         conclusion: "success", 
         output: {
           title: @payload['check_run']['name'],
-          summary: "P7 programmed and measured successfully: image here </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 48h)</a></p><img src=\"#{img_URL}\">",
+          summary: "P7 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 48h)</a></p><img src=\"#{img_URL}\">",
           text: result,
         },
         accept: 'application/vnd.github.v3+json'
@@ -477,34 +477,34 @@ class GHAapp < Sinatra::Application
     #     'doc-example-bucket',
     #     'my-file.txt'
     #   )
-    def aws_s3_object_uploaded?(s3_client, bucket_name, object_key)
-      response = s3_client.put_object(
-        bucket: bucket_name,
-        key: object_key
-      )
-      if response.etag
-        return true
+
+    def aws_s3_object_uploaded?(s3_resource, bucket_name, object_key, file_path)
+      object = s3_resource.bucket(bucket_name).object(object_key)
+  
+      if file_path.include?(".png")
+        object.upload_file(file_path, {content_type: "image/png"})
       else
-        return false
+        object.upload_file(file_path)
       end
+      
+      return true
     rescue StandardError => e
       logger.debug "Error uploading object: #{e.message}"
       return false
     end
-
+    
     # Full example call:
     def aws_s3_upload_file(filename)
       bucket_name = 'power-tester-artifacts'
       object_key = filename
       region = 'us-west-1'
-      s3_client = Aws::S3::Client.new(region: region,
+      s3_client = Aws::S3::Resource.new(region: region,
         access_key_id: ENV['AWS_S3_API_KEY_ID'],
         secret_access_key: ENV['AWS_SECRET_ACCESS_KEY'])
-
-      if aws_s3_object_uploaded?(s3_client, bucket_name, object_key)
+    
+      if aws_s3_object_uploaded?(s3_client, bucket_name, object_key, object_key)
         logger.debug "Object '#{object_key}' uploaded to bucket '#{bucket_name}'."
         return "https://" + bucket_name + ".s3." + region + ".amazonaws.com/" + object_key
-
       else
         logger.debug "Object '#{object_key}' not uploaded to bucket '#{bucket_name}'."
         return ""
