@@ -1,6 +1,6 @@
 # Physical power consumption tester meant to run as continuous integration. 
 
-Automated power tester to 
+Measures power consumption of P7/P8 attached to Windows laptop
 
 ![sample-run](images/sample-run.png)
 
@@ -33,7 +33,7 @@ Power overhead:
 - The SN74LVC1G14 consumes 10μA
 
 ## Install
-
+1. Install the Github App to `dialog_14683_scratch`  https://github.com/settings/apps/in-office-power-consumption-tester/installations 
 1. Install Ruby on Windows: https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.4-1/rubyinstaller-devkit-2.7.4-1-x64.exe
 2. In the MINGW32 shell:
 ```
@@ -60,7 +60,7 @@ Done installing documentation for bundler after 7 seconds
 
 1. Create a copy of the `.env-example` file called `.env`.
 2. Change the "Dialog workspace" directory in `reprogram_p7.sh`
-3. Add your GitHub App's private key, app ID, and webhook secret and the CircleCI API key to the `.env` file.
+3. Add your GitHub App's private key, app ID, and webhook secret and the CircleCI API key and the key of an AWS IAM user that has access to S3 to the `.env` file.
 
 ## Run the server
 

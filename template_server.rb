@@ -454,7 +454,7 @@ class GHAapp < Sinatra::Application
 
     def joulescope_measurement
       logger.debug "Starting Joulescope measurement"
-      stdout, stderr, status = Open3.capture3("python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 10 --display_stats --count 1 --init_power_off 3 --record")
+      stdout, stderr, status = Open3.capture3("python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3 --record")
       output = stdout + stderr
       logger.debug output
       return output
