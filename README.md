@@ -1,5 +1,10 @@
 # Physical power consumption tester meant to run as continuous integration. 
 
+Automated power tester to 
+
+![sample-run](images/sample-run.png)
+
+
 Runs as a "Github app" alongside the CircleCI Github App 
 
 Only triggers on repositories named "dialog_14683_scratch" 
@@ -10,10 +15,22 @@ Needs to run on Windows because the script to flash the P7 is "initial_flash.bat
 
 High level overview of program flow: 
 
-"diagram here"
+![sequence-diagram](images/sequence-diagram.svg)
 
 Created from Github App Template: 
 You can use this GitHub App template code as a foundation to create any GitHub App you'd like. You can learn how to configure a template GitHub App by following the "[Setting up your development environment](https://developer.github.com/apps/quickstart-guides/setting-up-your-development-environment/)" quickstart guide on developer.github.com.
+
+
+## Equipment Required:
+1. Segger J-Link that's not an EDU (the EDU has an annoying daily EULA prompt)
+2. (P7 or P8) with tail 
+3. DC power supply set to 3.7V  
+4. BDB (Basic debug board) with only these components installed (the others consume power): 
+![BDB](images/bdb.png)
+
+Power overhead: 
+- The Segger JLink consumes 25μA
+- The SN74LVC1G14 consumes 10μA
 
 ## Install
 
@@ -51,9 +68,6 @@ Done installing documentation for bundler after 7 seconds
 2. In another terminal window: `bundle exec ruby template_server.rb` 
 3. View the default Sinatra app at `localhost:3000`.
 
-
-## Notes
-The Joulescope Python scripts fail to run if the Joulescope GUI is open. 
 
 ## Troubleshooting 
 All the calls to and from the Github API from this application are logged here: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
