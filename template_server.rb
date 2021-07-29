@@ -94,6 +94,12 @@ class GHAapp < Sinatra::Application
       if @payload['action'] == 'requested' || @payload['action'] == 'rerequested'
         create_check_run
       end
+    when 'pull_request'
+      logger.debug  "pull_request"
+      logger.debug  @payload['action']
+      if @payload['action'] == 'opened' || @payload['action'] == 'synchronize'
+        create_check_run
+      end
     end
   
     # # # # # # # # # # # #
@@ -517,14 +523,24 @@ class GHAapp < Sinatra::Application
         return 
       end
 
+      logger.debug "creating check run"
+
+      # The payload structure differs depending on whether a check run or a check suite event occurred.
+      if @payload['check_run'] != nil 
+        commit_hash = @payload['check_run']['head_sha']
+      elsif @payload['check_suite'] != nil
+        commit_hash = @payload['check_suite']['head_sha']
+      elsif @payload['pull_request'] != nil
+        commit_hash = @payload['pull_request']['head']['sha']
+      end
+
       @installation_client.create_check_run(
         # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
         @payload['repository']['full_name'],
         # [String] The name of your check run.
         'P7 power usage average 90s after reset',
         # [String] The SHA of the commit to check 
-        # The payload structure differs depending on whether a check run or a check suite event occurred.
-        @payload['check_run'].nil? ? @payload['check_suite']['head_sha'] : @payload['check_run']['head_sha'],
+        commit_hash, 
         # [Hash] 'Accept' header option, to avoid a warning about the API not being ready for production use.
         accept: 'application/vnd.github.v3+json'
       )
@@ -586,7 +602,8 @@ class GHAapp < Sinatra::Application
     # Instantiate an Octokit client, authenticated as an installation of a
     # GitHub App, to run API operations.
     def authenticate_installation(payload)
-      @installation_id = payload['installation']['id']
+      # @installation_id = payload['installation']['id']
+      @installation_id = 18537730 # hardcoded since it doesn't come in the API for "pull_request" events
       @installation_token = @app_client.create_app_installation_access_token(@installation_id)[:token]
       @installation_client = Octokit::Client.new(bearer_token: @installation_token)
     end
@@ -611,7 +628,7 @@ class GHAapp < Sinatra::Application
       # The X-GITHUB-EVENT header provides the name of the event.
       # The action value indicates the which action triggered the event.
       logger.debug "---- received event #{request.env['HTTP_X_GITHUB_EVENT']}"
-      logger.debug "----    action #{@payload['action']}" unless @payload['action'].nil?
+      logger.debug "----    action: #{@payload['action']}" unless @payload['action'].nil?
     end
 
   end

@@ -25,8 +25,9 @@ You can use this GitHub App template code as a foundation to create any GitHub A
 1. Segger J-Link that's not an EDU (the EDU has an annoying daily EULA prompt)
 2. (P7 or P8) with tail 
 3. DC power supply set to 3.7V  
-4. BDB (Basic debug board) with only these components installed (the others consume power): 
-![BDB](images/bdb.png)
+4. Joulescope
+5. Ring breakout for its low power consumption: 
+![ring breakout](images/ring-breakout.png)
 
 Power overhead: 
 - The Segger JLink consumes 25μA
@@ -66,8 +67,15 @@ Done installing documentation for bundler after 7 seconds
 
 1. `smee -u https://smee.io/8WbQg5S8Wv7iyd  --path /event_handler --port 3000`   
 2. In another terminal window: `bundle exec ruby template_server.rb` 
-3. View the default Sinatra app at `localhost:3000`.
+3. View the default Sinatra app at `localhost:3000`. It should say `Sinatra doesn’t know this ditty.`
+
+The command-line windows should look like this: 
+![command windows](images/cmd-windows.png)
 
 
 ## Troubleshooting 
-All the calls to and from the Github API from this application are logged here: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
+
+1. Ctrl-C both command-line windows, 
+2. Kill all Ruby instances by opening a third Windows command-line window and: `taskkill /f /im ruby.exe`  
+3.  restart both commands
+- All the calls to and from the Github API from this application are logged here and can be resent: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
