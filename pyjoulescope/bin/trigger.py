@@ -234,8 +234,8 @@ class Capture:
             self.stop()
         self._time_start = [start_id, _current_time_str()]
         log.info(f'start {start_id}')
-        if self._args.display_trigger:
-            print(f'start {start_id}')
+        # if self._args.display_trigger:
+        #     print(f'start {start_id}')
         self._current.clear()
         self._voltage.clear()
         self._power.clear()
@@ -258,8 +258,8 @@ class Capture:
             self._record.close()
             self._record = None
         log.info(f'stop {end_id}')
-        if self._args.display_trigger:
-            print(f'stop {end_id}')
+        # if self._args.display_trigger:
+        #     print(f'stop {end_id}')
 
         self._count += 1
         current = self._current.result()
@@ -284,7 +284,7 @@ class Capture:
         
         if self._args.display_stats:
             
-            print(list(zip(COLUMNS.split(","), results)))
+            print(dict(zip(COLUMNS.split(","), results)))
 
         if self._csv is not None:
             self._csv.write(line + '\n')
@@ -376,7 +376,8 @@ class Capture:
         finite_idx = np.isfinite(i_all)
         i, v, p = i_all[finite_idx], v_all[finite_idx], p_all[finite_idx]
         if len(i) != len(i_all):
-            print(f'Ignored {len(i_all) - len(i)} missing samples')
+            # print(f'Ignored {len(i_all) - len(i)} missing samples')
+            pass
         if len(i):
             self._current.add(i)
             self._voltage.add(v)

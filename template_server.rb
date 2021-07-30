@@ -16,6 +16,8 @@ require 'aws-sdk-s3'
 set :port, 3000
 set :bind, '0.0.0.0'
 
+ABOVE_THIS_CURRENT_USAGE_THRESHOLD_IN_AMPS_FAILS_TEST = 0.005
+MEASUREMENT_DURATION = 90
 DIALOG_WORKSPACE = "/c/hh/dialog_14683_scratch"
 
 REPOSITORY_NAME = "dialog_14683_scratch"    #prevent running on other repositories 
@@ -95,8 +97,6 @@ class GHAapp < Sinatra::Application
         create_check_run
       end
     when 'pull_request'
-      logger.debug  "pull_request"
-      logger.debug  @payload['action']
       if @payload['action'] == 'opened' || @payload['action'] == 'synchronize'
         create_check_run
       end
@@ -268,6 +268,14 @@ class GHAapp < Sinatra::Application
       img_URL = aws_s3_upload_file(image_file_name)
 
       `taskkill /f /im joulescope.exe`
+
+      joulescope_output_parsed = eval(result)
+      current_mean = joulescope_output_parsed[:"current_mean(A)"].to_f 
+      if current_mean > ABOVE_THIS_CURRENT_USAGE_THRESHOLD_IN_AMPS_FAILS_TEST
+        github_conclusion = "failure"
+      else
+        github_conclusion = "success"
+      end
 
       full_repo_name = @payload['repository']['full_name']
       repository     = @payload['repository']['name']
@@ -460,7 +468,7 @@ class GHAapp < Sinatra::Application
 
     def joulescope_measurement
       logger.debug "Starting Joulescope measurement"
-      stdout, stderr, status = Open3.capture3("python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration 90 --display_stats --count 1 --init_power_off 3 --record")
+      stdout, stderr, status = Open3.capture3("python pyjoulescope/bin/trigger.py --start duration --start_duration 1  --end duration --capture_duration #{MEASUREMENT_DURATION} --display_stats --count 1 --init_power_off 3 --record")
       output = stdout + stderr
       logger.debug output
       return output
@@ -523,8 +531,6 @@ class GHAapp < Sinatra::Application
         return 
       end
 
-      logger.debug "creating check run"
-
       # The payload structure differs depending on whether a check run or a check suite event occurred.
       if @payload['check_run'] != nil 
         commit_hash = @payload['check_run']['head_sha']
@@ -538,7 +544,7 @@ class GHAapp < Sinatra::Application
         # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
         @payload['repository']['full_name'],
         # [String] The name of your check run.
-        'P7 power usage average 90s after reset',
+        "P7 averages < #{ABOVE_THIS_CURRENT_USAGE_THRESHOLD_IN_AMPS_FAILS_TEST}A #{MEASUREMENT_DURATION}s after reset",
         # [String] The SHA of the commit to check 
         commit_hash, 
         # [Hash] 'Accept' header option, to avoid a warning about the API not being ready for production use.
