@@ -147,7 +147,7 @@ class GHAapp < Sinatra::Application
           #  additional details should be provided on the site specified by details_url.
           conclusion: "timed_out", 
           output: {
-            title: @payload['check_run']['name'],
+            title: "Timed out. Did CirclCI Build successfully?",
             summary: "Firmware download did not finish after #{MAX_RETRY_TIME_ELAPSED}s. Did CircleCI build successfully?",
           },
           accept: 'application/vnd.github.v3+json'
@@ -165,7 +165,7 @@ class GHAapp < Sinatra::Application
           #  additional details should be provided on the site specified by details_url.
           conclusion: "cancelled", 
           output: {
-            title: @payload['check_run']['name'],
+            title: "No firmware to measure",
             summary: "CircleCI job failed/blocked/canceled. No firmware to measure.",
           },
           accept: 'application/vnd.github.v3+json'
@@ -186,8 +186,8 @@ class GHAapp < Sinatra::Application
           #  additional details should be provided on the site specified by details_url.
           conclusion: "cancelled", 
           output: {
-            title: @payload['check_run']['name'],
-            summary: "cannot open gdb interface. A cable is disconnected or the power is off",
+            title: "cannot open gdb interface. A cable is disconnected or the power is off",
+            summary: "cannot open gdb interface. A cable is disconnected or the power is off. Did the RESET pin inverter light on fire?",
           },
           accept: 'application/vnd.github.v3+json'
         )
@@ -205,7 +205,7 @@ class GHAapp < Sinatra::Application
           #  additional details should be provided on the site specified by details_url.
           conclusion: "cancelled", 
           output: {
-            title: @payload['check_run']['name'],
+            title: "unknown error",
             summary: "Unknown error. Details below",
             text: output
           },
@@ -236,7 +236,7 @@ class GHAapp < Sinatra::Application
           #  additional details should be provided on the site specified by details_url.
           conclusion: "cancelled", 
           output: {
-            title: @payload['check_run']['name'],
+            title: "Joulescope error",
             summary: "Joulescope error. Details below. Is Joulescope connected "\
             "and no application other than this script using it? Close Joulescope GUI.",
             text: result
@@ -292,7 +292,7 @@ class GHAapp < Sinatra::Application
         #  additional details should be provided on the site specified by details_url.
         conclusion: github_conclusion, 
         output: {
-          title: @payload['check_run']['name'],
+          title: "#{current_mean} A mean",
           summary: "P7 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 48h)</a></p><img src=\"#{img_URL}\">",
           text: result,
         },
