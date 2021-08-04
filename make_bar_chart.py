@@ -21,11 +21,18 @@ fig, ax = plt.subplots()
 
 # Read all the lines of the CSV file and the first argument from the command-line
 csv_lines = []
-with open('first_few_seconds.csv', "w+", newline='\n') as csvfile:
+with open('first_few_seconds.csv', newline='\n') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=',', quotechar='"')
     for row in spamreader:
         csv_lines.append(row)
-csv_lines.append(sys.argv[2].split(","))
+# for some reason, quotes do/don't appear when executing this Python script 
+# manually on command-line vs being called from the Ruby script, so use this workaround to remove
+# the quotes
+line_with_removed_quote = sys.argv[2]
+if line_with_removed_quote[0] == '\'':
+    line_with_removed_quote = line_with_removed_quote[1:-1]
+
+csv_lines.append(line_with_removed_quote.split(","))
 
 # Split all the lines 
 people = []
@@ -34,7 +41,6 @@ for line in csv_lines:
     people.append(line[0] + " " + line[1] + " " + line[2])
     x_vals.append(float(line[3]))
 y_pos = np.arange(len(people))
-print(x_vals)
 
 # Write all the lines back to the CSV (up to a limit)
 if len(csv_lines) > MAX_LINES_IN_BAR_GRAPH:
