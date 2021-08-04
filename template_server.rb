@@ -253,6 +253,7 @@ class GHAapp < Sinatra::Application
       image_file_name = date_time.strftime("%Y%m%d_%H%M%S.png")
       jls_file_name = `ls *.jls`
       jls_file_name = jls_file_name[0..-2] #remove the /r/n
+      plot_first_few_seconds_file_name = date_time.strftime("%Y%m%d_%H%M%S_first_few_s.png")
 
       logger.debug "Taking Joulescope screenshot"
       # Open Joulescope window       
@@ -263,11 +264,6 @@ class GHAapp < Sinatra::Application
       stdout, stderr, status = Open3.capture3("screenCapture.bat #{image_file_name} Joulescope:")
       output = stdout + stderr
       logger.debug output
-      
-      jls_URL = aws_s3_upload_file(jls_file_name)
-      img_URL = aws_s3_upload_file(image_file_name)
-
-      `taskkill /f /im joulescope.exe`
 
       joulescope_output_parsed = eval(result)
       current_mean = joulescope_output_parsed[:"current_mean(A)"].to_f 
@@ -277,6 +273,22 @@ class GHAapp < Sinatra::Application
         github_conclusion = "success"
       end
 
+      # Make bar graph of the last few measurements
+      commit_hash = @payload['check_run']['head_sha'][0..7]
+      user = @payload['sender']['login']
+      new_csv_line = date_time.strftime("%Y-%m-%d") + "," + commit_hash + "," + user + "," + current_mean.to_s
+      logger.debug "new_csv_line: " + new_csv_line
+      stdout, stderr, status = Open3.capture3("python make_bar_chart.py #{plot_first_few_seconds_file_name} '#{new_csv_line}'")
+      output = stdout + stderr
+      logger.debug output
+      
+      # Upload files
+      jls_URL = aws_s3_upload_file(jls_file_name)
+      img_URL = aws_s3_upload_file(image_file_name)
+      plot_first_few_s_URL = aws_s3_upload_file(plot_first_few_seconds_file_name)
+
+      `taskkill /f /im joulescope.exe`
+      
       full_repo_name = @payload['repository']['full_name']
       repository     = @payload['repository']['name']
       head_sha       = @payload['check_run']['head_sha']
@@ -293,7 +305,7 @@ class GHAapp < Sinatra::Application
         conclusion: github_conclusion, 
         output: {
           title: "#{current_mean} A mean",
-          summary: "P7 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 48h)</a></p><img src=\"#{img_URL}\">",
+          summary: "P7 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 48h)</a></p><img src=\"#{img_URL}\"></p><img src=\"#{plot_first_few_s_URL}\">",
           text: result,
         },
         accept: 'application/vnd.github.v3+json'

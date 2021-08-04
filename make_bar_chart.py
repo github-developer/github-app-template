@@ -1,3 +1,9 @@
+# Makes bar chart. 
+# 
+# Expected input: 
+# python make_bar_chart.py "plot1.png" '2021-08-01,0fc232,user here,0.0033'
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
@@ -15,7 +21,7 @@ fig, ax = plt.subplots()
 
 # Read all the lines of the CSV file and the first argument from the command-line
 csv_lines = []
-with open('first_few_seconds.csv', newline='\n') as csvfile:
+with open('first_few_seconds.csv', "w+", newline='\n') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=',', quotechar='"')
     for row in spamreader:
         csv_lines.append(row)
@@ -26,8 +32,9 @@ people = []
 x_vals = []
 for line in csv_lines:
     people.append(line[0] + " " + line[1] + " " + line[2])
-    x_vals.append(line[3])
+    x_vals.append(float(line[3]))
 y_pos = np.arange(len(people))
+print(x_vals)
 
 # Write all the lines back to the CSV (up to a limit)
 if len(csv_lines) > MAX_LINES_IN_BAR_GRAPH:
@@ -47,7 +54,7 @@ ax.set_title('First 90s')
 ax.set_xscale('log')
 fig.subplots_adjust(left=0.5)
 fig.subplots_adjust(bottom=0.17)
-fig.subplots_adjust(right=0.975)
+# fig.subplots_adjust(right=0.975)
 fig.set_size_inches(7, 8)
 plt.grid(b=True, which="both", axis="x", color='gray', linestyle='dashed')
 ax.set_axisbelow(True)
