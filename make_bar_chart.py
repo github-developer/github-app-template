@@ -1,48 +1,43 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
+import sys
 
-COMMIT_MSG_CHAR_LIMIT = 20
+MAX_LINES_IN_BAR_GRAPH = 25
 
-# Fixing random state for reproducibility
-np.random.seed(19680801)
-
+# 1. Open CSV  
+# 2. Make plot
+# 3. Delete the first line from the CSV
+# 4. Close CSV 
 
 plt.rcdefaults()
 fig, ax = plt.subplots()
 
-# Example data
-people = ('2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-'2021-08-01 0fc232 commit message here', 
-)
-y_pos = np.arange(len(people))
-x_vals = .01 * np.random.rand(len(people))
-error = np.random.rand(len(people))
+# Read all the lines of the CSV file and the first argument from the command-line
+csv_lines = []
+with open('first_few_seconds.csv', newline='\n') as csvfile:
+    spamreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+    for row in spamreader:
+        csv_lines.append(row)
+csv_lines.append(sys.argv[2].split(","))
 
-# ax.barh(y_pos, x_vals, xerr=error, align='center')
+# Split all the lines 
+people = []
+x_vals = []
+for line in csv_lines:
+    people.append(line[0] + " " + line[1] + " " + line[2])
+    x_vals.append(line[3])
+y_pos = np.arange(len(people))
+
+# Write all the lines back to the CSV (up to a limit)
+if len(csv_lines) > MAX_LINES_IN_BAR_GRAPH:
+    csv_lines = csv_lines[1:]
+with open('first_few_seconds.csv', 'w', newline='\n') as csvfile:
+    spamwriter = csv.writer(csvfile, delimiter=',',
+                            quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    for line in csv_lines:
+        spamwriter.writerow(line)
+
 ax.barh(y_pos, x_vals, align='center')
 ax.set_yticks(y_pos)
 ax.set_yticklabels(people)
@@ -60,7 +55,7 @@ ax.set_axisbelow(True)
 # zip joins x and y coordinates in pairs
 for x,y in zip(x_vals,y_pos):
 
-    label = "{:f}".format(x)
+    label = x
 
     plt.annotate(label, # this is the text
                  (x,y), # these are the coordinates to position the label
@@ -70,6 +65,7 @@ for x,y in zip(x_vals,y_pos):
                  
 for tick in ax.get_xminorticklabels():
     tick.set_rotation(30)
-plt.show()
-                 
+# plt.show()
 # plt.savefig(fname="plot.png")
+plt.savefig(fname=sys.argv[1])
+
