@@ -1,0 +1,2 @@
+start cmd.exe @cmd /k "smee -u https://smee.io/8WbQg5S8Wv7iyd --path /event_handler --port 3000" 
+C:\Users\Andrew\AppData\Local\Atlassian\SourceTree\git_local\usr\bin\mintty.exe -o MSYSTEM=MINGW32 /usr/bin/bash -l sinatra-server-caller.sh

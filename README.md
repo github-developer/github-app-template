@@ -65,8 +65,7 @@ Done installing documentation for bundler after 7 seconds
 
 ## Run the server
 
-1. `smee -u https://smee.io/8WbQg5S8Wv7iyd  --path /event_handler --port 3000`   
-2. In another terminal window: `bundle exec ruby template_server.rb` 
+1. Click "start-smee-and-server.bat". Two windows should appear. One for the smee-client and one for the Sinatra Ruby Server. 
 3. View the default Sinatra app at `localhost:3000`. It should say `Sinatra doesn’t know this ditty.`
 
 The command-line windows should look like this: 
