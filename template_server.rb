@@ -259,7 +259,7 @@ class GHAapp < Sinatra::Application
       # Open Joulescope window       
       pid = spawn("\"C:\\Program Files (x86)\\Joulescope\\joulescope.exe\" ./#{jls_file_name}")
       Process.detach(pid)
-      sleep(5) # Wait for the window to open
+      sleep(10) # Wait for the Joulescope window to open and plot all data. Computer is slow. 
       # Use screen capture program 
       stdout, stderr, status = Open3.capture3("screenCapture.bat #{image_file_name} Joulescope:")
       output = stdout + stderr
