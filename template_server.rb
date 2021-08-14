@@ -313,7 +313,7 @@ class GHAapp < Sinatra::Application
         conclusion: github_conclusion, 
         output: {
           title: "#{current_mean} A mean",
-          summary: "P7 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 48h)</a></p><img src=\"#{img_URL}\"></p><img src=\"#{plot_first_few_s_URL}\">",
+          summary: "P7 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 7 days)</a></p><img src=\"#{img_URL}\"></p><img src=\"#{plot_first_few_s_URL}\">",
           text: result,
         },
         accept: 'application/vnd.github.v3+json'
