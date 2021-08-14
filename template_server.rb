@@ -56,6 +56,9 @@ class GHAapp < Sinatra::Application
   APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
 
   semaphore = Mutex.new
+  # For some reason, Github submits TWO check_run events per pull_request event, 
+  # so work around the issue by refusing to measure the same commit twice in a row
+  last_commit_hash = ""; 
 
   # Turn on Sinatra's verbose logging during development
   configure :development do
@@ -84,7 +87,12 @@ class GHAapp < Sinatra::Application
           semaphore.synchronize {
             case @payload['action']          
             when 'created'
-              initiate_check_run
+              # For some reason, Github submits TWO check_run events per pull_request event, 
+              # so work around the issue by refusing to measure the same commit twice in a row
+              if last_commit_hash != commit_hash = @payload['check_run']['head_sha']
+                initiate_check_run
+                last_commit_hash = commit_hash = @payload['check_run']['head_sha']
+              end
             when 'rerequested'
               create_check_run
             end

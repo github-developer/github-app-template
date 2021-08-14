@@ -2,3 +2,7 @@ node_modules
 .env
 *.bin
 screenCapture.exe
+.DS_Store
+*.jls
+desktop.ini
+*first_few_s.png
