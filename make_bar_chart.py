@@ -38,8 +38,8 @@ csv_lines.append(line_with_removed_quote.split(","))
 people = []
 x_vals = []
 for line in csv_lines:
-    people.append(line[0] + " " + line[1] + " " + line[2])
-    x_vals.append(float(line[3]))
+    people.append(line[0] + " " + line[1])
+    x_vals.append(float(line[2]))
 y_pos = np.arange(len(people))
 
 # Write all the lines back to the CSV (up to a limit)

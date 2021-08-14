@@ -283,8 +283,7 @@ class GHAapp < Sinatra::Application
 
       # Make bar graph of the last few measurements
       commit_hash = @payload['check_run']['head_sha'][0..7]
-      user = @payload['sender']['login']
-      new_csv_line = date_time.strftime("%Y-%m-%d") + "," + commit_hash + "," + user + "," + current_mean.to_s
+      new_csv_line = date_time.strftime("%Y-%m-%d") + "," + commit_hash + "," + current_mean.to_s
       logger.debug "new_csv_line: " + new_csv_line
       stdout, stderr, status = Open3.capture3("python make_bar_chart.py #{plot_first_few_seconds_file_name} '#{new_csv_line}'")
       output = stdout + stderr
