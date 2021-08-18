@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Capture Joulescope samples to a JLS file."""
+"""Capture Joulescope samples to a JLS v1 file."""
 
 from joulescope import scan_require_one
 from joulescope.data_recorder import DataRecorder
@@ -36,7 +36,7 @@ def run():
         quit_ = 'quit from stop duration'  
 
     if len(sys.argv) != 2:
-        print("usage: python3 capture_jls.py [filename]")
+        print("usage: python3 capture_jls_v1.py [filename]")
         return 1
     filename = sys.argv[1]
     signal.signal(signal.SIGINT, do_quit)

@@ -45,3 +45,7 @@ joulescope/version.py
 .idea
 .settings
 
+# Virtual environment
+
+venv
+

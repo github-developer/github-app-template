@@ -4,6 +4,14 @@
 This file contains the list of changes made to pyjoulescope_examples.
 
 
+## 0.9.6
+
+2021 Aug 17
+
+*   Renamed example "capture_jls.py" to "capture_jls_v1.py"
+*   Added "capture_jls_v2.py" example.
+
+
 ## 0.9.5
 
 2021 Jun 17
