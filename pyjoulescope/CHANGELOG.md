@@ -4,6 +4,15 @@
 This file contains the list of changes made to pyjoulescope_examples.
 
 
+## 0.9.7
+
+2021 Aug 18
+
+*   Updated capture_jls_v2 to use new joulescope.jls_writer module. 
+*   Bumped joulescope dependency to 0.9.7.
+*   Added JLS v2 support to trigger.py.
+
+
 ## 0.9.6
 
 2021 Aug 17

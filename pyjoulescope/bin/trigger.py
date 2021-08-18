@@ -67,7 +67,7 @@ Requirements:
 10. Capture numerous windows (defaults to 1)
 """
 
-from joulescope import scan_require_one
+from joulescope import scan_require_one, JlsWriter
 from joulescope.data_recorder import DataRecorder
 import argparse
 import datetime
@@ -91,6 +91,13 @@ FIELD_MAP = {'in0': 'current_lsb', 'in1': 'voltage_lsb'}
 IO_TRIG = ['low', 'high', 'rising', 'falling']
 
 
+def _jls_version_validator(x):
+    x = int(x)
+    if x not in [1, 2]:
+        raise ValueError(f'Invalid JLS version {x}')
+    return x
+
+
 def get_parser():
     p = argparse.ArgumentParser(
         description='Read data from Joulescope.',
@@ -98,6 +105,15 @@ def get_parser():
     p.add_argument('--record', '-r',
                    action='store_true',
                    help='Capture to automatically named JLS files.')
+    p.add_argument('--jls_version',
+                   default=2,
+                   type=_jls_version_validator,
+                   help='The JLS file format version.')
+    p.add_argument('--jls_signals',
+                   default='current,voltage',
+                   help='The comma-separated list of signals to record to the JLS file. '
+                        + 'The available signals include: current, voltage, power. '
+                        + 'Ignored if jls_version is 1.')
     p.add_argument('--csv',
                    help='Capture each event to this CSV file')
     p.add_argument('--start',
@@ -206,6 +222,7 @@ class Capture:
         self._args = args
         self._timestamp = None
         self._record = None
+        self._jls_signals = args.jls_signals.split(',')
         self._csv = None
         self._count = 0
         self._triggered = False
@@ -243,8 +260,12 @@ class Capture:
         self._energy = 0
         if self._args.record:
             filename = self._construct_record_filename()
-            self._record = DataRecorder(filename,
-                                        calibration=self._device.calibration)
+            if self._args.jls_version == 1:
+                self._record = DataRecorder(filename,
+                                            calibration=self._device.calibration)
+            else:
+                self._record = JlsWriter(self._device, filename, signals=self._jls_signals)
+                self._record.open()
         self._triggered = True
         return start_id
 
@@ -386,7 +407,13 @@ class Capture:
             self._charge += int(np.sum(i) * period * GAIN)
             self._energy += int(np.sum(p) * period * GAIN)
             if self._record is not None:
-                self._record.insert(data)
+                if self._args.jls_version == 1:
+                    self._record.insert(data)
+                else:
+                    idx = start_id - self._time_start[0]
+                    signal_data = {'current': i_all, 'voltage': v_all, 'power': p_all}
+                    for s in self._jls_signals:
+                        self._record.fsr_f32(s, idx, signal_data[s])
         return end_id
 
     def _end_none(self, stream_buffer, start_id, end_id):
