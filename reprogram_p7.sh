@@ -2,9 +2,8 @@
 
 DIALOG_WORKSPACE="/c/hh/dialog_14683_scratch"
 
-CURRENT_DIR=`pwd`
-APP_BIN="${CURRENT_DIR}/freertos_retarget.bin"
-BL_BIN="${CURRENT_DIR}/ble_suota_loader.bin"
+APP_BIN="${DIALOG_WORKSPACE}/projects/dk_apps/templates/freertos_retarget/Happy_P7_QSPI_Release/freertos_retarget.bin"
+BL_BIN="${DIALOG_WORKSPACE}/sdk/bsp/system/loaders/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin"
 BL_UTILS_PATH="${DIALOG_WORKSPACE}/utilities/scripts/qspi"
 HPY_UTILS_PATH="${DIALOG_WORKSPACE}/utilities/scripts/hpy/v11"
 # Example command

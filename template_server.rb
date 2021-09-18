@@ -12,6 +12,7 @@ require 'open3'
 require 'thread'
 require 'date'
 require 'aws-sdk-s3'
+require 'fileutils'
 
 set :port, 3000
 set :bind, '0.0.0.0'
@@ -19,6 +20,8 @@ set :bind, '0.0.0.0'
 ABOVE_THIS_CURRENT_USAGE_THRESHOLD_IN_AMPS_FAILS_TEST = 0.008
 MEASUREMENT_DURATION = 90
 DIALOG_WORKSPACE = "/c/hh/dialog_14683_scratch"
+# FileUtils.move() thinks /c/ is a folder instead of a drive letter 
+DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER = "C:/hh/dialog_14683_scratch" 
 
 REPOSITORY_NAME = "dialog_14683_scratch"    #prevent running on other repositories 
 MAX_RETRY_TIME_ELAPSED = 60 * 14  # wait 14 minutes maximum to download firmware after starting the check run 
@@ -414,7 +417,7 @@ class GHAapp < Sinatra::Application
       # Download the firmware from the CircleCI artifact URL
       logger.debug "Downloading application firmware"
       begin 
-        download_file(artifact_URL)
+        download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/projects/dk_apps/templates/freertos_retarget/Happy_P7_QSPI_Release/freertos_retarget.bin")
       rescue RuntimeError => e
         if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
           logger.debug "Error: max timeout reached." 
@@ -435,7 +438,7 @@ class GHAapp < Sinatra::Application
       # Download the firmware from the CircleCI artifact URL
       logger.debug "Downloading bootloader firmware"
       begin 
-        download_file(artifact_URL)
+        download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/sdk/bsp/system/loaders/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin")
       rescue RuntimeError => e
         if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
           logger.debug "Error: max timeout reached." 
@@ -449,9 +452,7 @@ class GHAapp < Sinatra::Application
 
     end 
 
-    def download_file(url)
-      dir = File.expand_path(File.join(File.dirname(__FILE__), '.', 'lib'))
-      logger.debug "Dir to download: " + dir
+    def download_file(url, destination_path)
       # download file without using the memory
       response = nil
       filename = (url.split('/', -1))[-1] # Get the end of the URL, e.g. "freertos_retarget.bin"
@@ -468,11 +469,14 @@ class GHAapp < Sinatra::Application
           end
         end
       end
-      logger.debug
 
-      pp "Success: #{response.success?}"
-      pp File.stat(filename).inspect
-      # File.unlink(filename)
+      logger.debug "Filename: " + filename + " Destination: " + destination_path
+    
+      # If the folder does not exist then this will error. Pre-create the folder. 
+      # Correct format for absolute path for this function: 
+      #     "C:/hh/dialog_14683_scratch/sdk/bsp/system/loaders/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin"
+      FileUtils.mv(filename, destination_path)
+
       return "success"
     end
 
