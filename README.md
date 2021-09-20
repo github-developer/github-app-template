@@ -54,8 +54,17 @@ Done installing documentation for bundler after 7 seconds
 4. Install Node
 5. `npm install --global smee-client`
 6. `cd pyjoulescope`
-7. `pip3 install -U -r requirements.txt`
-8. Connect the OUT0 GPIO in the back of Joulescope to the IN0 GPIO in the back of Joulescope
+7. `python -m ensurepip`
+8. `pip3 install -U -r requirements.txt`
+9. Put a shortcut to Joulescope in Startup folder (or else `cannot open gdb interface` on reboot)
+9. Edit template_server.rb to have to correct paths for `DIALOG_WORKSPACE` and `DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER`
+10. Manually create these folders or else the script will error
+```
+"${DIALOG_WORKSPACE}/projects/dk_apps/templates/freertos_retarget/Happy_P7_QSPI_Release/"
+"${DIALOG_WORKSPACE}/sdk/bsp/system/loaders/ble_suota_loader/DA14683-00-Release_QSPI/"
+```
+11. Edit the permissions in those folders to include write for all users
+
 
 ## Set environment variables
 
@@ -65,7 +74,7 @@ Done installing documentation for bundler after 7 seconds
 
 ## Run the server
 
-1. Click "start-smee-and-server.bat". Two windows should appear. One for the smee-client and one for the Sinatra Ruby Server. 
+1. Click "start-smee-and-server.bat". Two windows should appear. One for the smee-client and one for the Sinatra Ruby Server. This file can be used to restart the server too. 
 3. View the default Sinatra app at `localhost:3000`. It should say `Sinatra doesn’t know this ditty.`
 
 The command-line windows should look like this: 
@@ -77,4 +86,4 @@ The command-line windows should look like this:
 1. Ctrl-C both command-line windows, 
 2. Kill all Ruby instances by opening a third Windows command-line window and: `taskkill /f /im ruby.exe`  
 3.  restart both commands
-- All the calls to and from the Github API from this application are logged here and can be resent: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
+- All the calls to and from the Github API from this application are logged here and can be re-sent: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
