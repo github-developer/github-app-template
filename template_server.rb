@@ -22,6 +22,7 @@ MEASUREMENT_DURATION = 90
 DIALOG_WORKSPACE = "/c/hh/dialog_14683_scratch"
 # FileUtils.move() thinks /c/ is a folder instead of a drive letter 
 DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER = "C:/hh/dialog_14683_scratch" 
+DIALOG_WORKSPACE_WITH_BACKSLASH = "C:\hh\dialog_14683_scratch" 
 
 REPOSITORY_NAME = "dialog_14683_scratch"    #prevent running on other repositories 
 MAX_RETRY_TIME_ELAPSED = 60 * 14  # wait 14 minutes maximum to download firmware after starting the check run 
@@ -483,7 +484,7 @@ class GHAapp < Sinatra::Application
     def program_p7
       logger.debug "Flashing over JTAG"
       # Call script that flashes the firmware onto P7
-      stdout, stderr, status = Open3.capture3("bash ./reprogram_p7.sh")
+      stdout, stderr, status = Open3.capture3("#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\utilities\scripts\suota\v11\initial_flash.bat --jlink_path \"C:\Program Files (x86)\SEGGER\JLink_V612i\"   \"#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\projects\dk_apps\templates\freertos_retarget\Happy_P7_QSPI_Release\freertos_retarget.bin\"")
       output = stdout + stderr
       logger.debug output
       return output
