@@ -485,6 +485,7 @@ class GHAapp < Sinatra::Application
       logger.debug "Flashing over JTAG"
       # Call script that flashes the firmware onto P7
       stdout, stderr, status = Open3.capture3("#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\utilities\scripts\suota\v11\initial_flash.bat --jlink_path \"C:\Program Files (x86)\SEGGER\JLink_V612i\"   \"#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\projects\dk_apps\templates\freertos_retarget\Happy_P7_QSPI_Release\freertos_retarget.bin\"")
+      stdout, stderr, status = Open3.capture3("#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\\utilities\\scripts\\suota\\v11\\initial_flash.bat --jlink_path \"C:\\Program Files (x86)\\SEGGER\\JLink_V612i\"   \"#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\\projects\\dk_apps\\templates\\freertos_retarget\\Happy_P7_QSPI_Release\\freertos_retarget.bin\"")
       output = stdout + stderr
       logger.debug output
       return output
