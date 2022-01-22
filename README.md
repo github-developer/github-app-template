@@ -50,7 +50,12 @@ Done installing documentation for bundler after 7 seconds
 ```
 
 3. To run the code, make sure you have [Bundler](http://gembundler.com/) installed; then enter `bundle install` on the command line.
-
+3. Download the dialog_14683_scrach repository: https://github.com/happy-health/dialog_14683_scratch/commit/3783e54852da80221fcf7106535b101574277d2e
+3. Install JLink DLL V670d (v6.12i does not work)
+3. Ensure JLink is running firmware v6.70d (2020-04-16) 
+```
+SEGGER J-Link Commander V6.70d (Compiled Apr 16 2020 17:57:43)                                                          DLL version V6.70d, compiled Apr 16 2020 17:56:51                                                                                                                                                                                               Connecting to J-Link via USB...O.K.                                                                                     Firmware: J-Link V11 compiled Apr 16 2020 17:17:32                                                                      Hardware version: V11.00                                                                                                S/N: 821005715                                                                                                          License(s): GDB                                                                                                         VTref=3.349V                                                                                                             
+``` 
 4. Install Node
 5. `npm install --global smee-client`
 6. `cd pyjoulescope`
@@ -58,7 +63,7 @@ Done installing documentation for bundler after 7 seconds
 8. `pip3 install -U -r requirements.txt`
 9. Put a shortcut to Joulescope in Startup folder (or else `cannot open gdb interface` on reboot)
 9. Edit template_server.rb to have to correct paths for `DIALOG_WORKSPACE` and `DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER`
-10. Manually create these folders or else the script will error
+10. Manually create these folders. Or else the script will error
 ```
 "${DIALOG_WORKSPACE}/projects/dk_apps/templates/freertos_retarget/Happy_P7_QSPI_Release/"
 "${DIALOG_WORKSPACE}/sdk/bsp/system/loaders/ble_suota_loader/DA14683-00-Release_QSPI/"
