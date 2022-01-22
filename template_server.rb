@@ -184,7 +184,10 @@ class GHAapp < Sinatra::Application
         return result 
       end
 
-      erase_p7_qspi
+      ## QSPI erase is not supposed to be done for P8 or later because the unique 
+      ## device information (e.g. serial number) is lost 
+      ## 
+      # erase_p7_qspi
       
       output = program_p7
       if output.include?("cannot open gdb interface") 
