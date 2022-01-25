@@ -187,9 +187,9 @@ class GHAapp < Sinatra::Application
       ## QSPI erase is not supposed to be done for P8 or later because the unique 
       ## device information (e.g. serial number) is lost 
       ## 
-      # erase_p7_qspi
+      # erase_P8_qspi
       
-      output = program_p7
+      output = program_P8
       if output.include?("cannot open gdb interface") 
          # Mark the check run as failed
          @installation_client.update_check_run(
@@ -208,7 +208,7 @@ class GHAapp < Sinatra::Application
           accept: 'application/vnd.github.v3+json'
         )
 
-        return "program_p7_failed"
+        return "program_P8_failed"
       elsif output.include?("done.") == false
         # Mark the check run as failed
         @installation_client.update_check_run(
@@ -228,7 +228,7 @@ class GHAapp < Sinatra::Application
           accept: 'application/vnd.github.v3+json'
         )
 
-        return "program_p7_failed"
+        return "program_P8_failed"
       end
 
       stdout, stderr, status = Open3.capture3("taskkill /f /im joulescope.exe")
@@ -320,7 +320,7 @@ class GHAapp < Sinatra::Application
         conclusion: github_conclusion, 
         output: {
           title: "#{current_mean} A mean",
-          summary: "P7 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 7 days)</a></p><img src=\"#{img_URL}\"></p><img src=\"#{plot_first_few_s_URL}\">",
+          summary: "P8 programmed and measured successfully. </p><a href=\"#{jls_URL}\">Download JLS file to see in Joulescope GUI (deleted after 7 days)</a></p><img src=\"#{img_URL}\"></p><img src=\"#{plot_first_few_s_URL}\">",
           text: result,
         },
         accept: 'application/vnd.github.v3+json'
@@ -413,16 +413,16 @@ class GHAapp < Sinatra::Application
         sleep(RETRY_PERIOD)
         retry
       end
-      # Filter the artifacts for only the P7 reelase 
+      # Filter the artifacts for only the P8 reelase 
       response_parsed = JSON.parse(response)
-      artifact_descriptors = response_parsed.select{|descriptor| descriptor["path"] == "~/builds/freertos_retarget/Happy_P7_QSPI_Release/freertos_retarget.bin"}
+      artifact_descriptors = response_parsed.select{|descriptor| descriptor["path"] == "~/builds/freertos_retarget/Happy_P8_QSPI_Release/freertos_retarget.bin"}
       artifact_URL = artifact_descriptors[0]["url"]
       logger.debug "Firmware URL: " + artifact_URL
 
       # Download the firmware from the CircleCI artifact URL
       logger.debug "Downloading application firmware"
       begin 
-        download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/projects/dk_apps/templates/freertos_retarget/Happy_P7_QSPI_Release/freertos_retarget.bin")
+        download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/projects/dk_apps/templates/freertos_retarget/Happy_P8_QSPI_Release/freertos_retarget.bin")
       rescue RuntimeError => e
         if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
           logger.debug "Error: max timeout reached." 
@@ -485,7 +485,7 @@ class GHAapp < Sinatra::Application
       return "success"
     end
 
-    def erase_p7_qspi
+    def erase_P8_qspi
       logger.debug "Erasing QSPI"
       
       stdout, stderr, status = Open3.capture3("bash ./erase_qspi.sh")
@@ -494,10 +494,10 @@ class GHAapp < Sinatra::Application
       return output
     end 
 
-    def program_p7
+    def program_P8
       logger.debug "Flashing over JTAG"
-      # Call script that flashes the firmware onto P7
-      stdout, stderr, status = Open3.capture3("#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\\utilities\\scripts\\hpy\\v11\\initial_flash.bat --jlink_path \"C:\\Program Files (x86)\\SEGGER\\JLink_V612i\"   \"#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\\projects\\dk_apps\\templates\\freertos_retarget\\Happy_P7_QSPI_Release\\freertos_retarget.bin\"")
+      # Call script that flashes the firmware onto P8
+      stdout, stderr, status = Open3.capture3("#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\\utilities\\scripts\\hpy\\v11\\initial_flash.bat --jlink_path \"C:\\Program Files (x86)\\SEGGER\\JLink_V612i\"   \"#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}\\projects\\dk_apps\\templates\\freertos_retarget\\Happy_P8_QSPI_Release\\freertos_retarget.bin\"")
       output = stdout + stderr
       logger.debug output
       return output
