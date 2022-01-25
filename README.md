@@ -91,4 +91,7 @@ The command-line windows should look like this:
 1. Ctrl-C both command-line windows, 
 2. Kill all Ruby instances by opening a third Windows command-line window and: `taskkill /f /im ruby.exe`  
 3.  restart both commands
-- All the calls to and from the Github API from this application are logged here and can be re-sent: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
+1.  All the calls to and from the Github API from this application are logged here and can be re-sent: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
+4. Is the server running? To make the server start in boot, I added the batch file to "Startup Apps" 
+
+![Startup apps](images/startup.png)
