@@ -581,7 +581,7 @@ class GHAapp < Sinatra::Application
         # [String, Integer, Hash, Octokit Repository object] A GitHub repository.
         @payload['repository']['full_name'],
         # [String] The name of your check run.
-        "P7 avg < #{ABOVE_THIS_CURRENT_USAGE_THRESHOLD_IN_AMPS_FAILS_TEST}A #{MEASUREMENT_DURATION}s after reset",
+        "P8 avg < #{ABOVE_THIS_CURRENT_USAGE_THRESHOLD_IN_AMPS_FAILS_TEST}A #{MEASUREMENT_DURATION}s after reset",
         # [String] The SHA of the commit to check 
         commit_hash, 
         # [Hash] 'Accept' header option, to avoid a warning about the API not being ready for production use.
