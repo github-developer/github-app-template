@@ -89,9 +89,11 @@ The command-line windows should look like this:
 ## Troubleshooting 
 
 1. Ctrl-C both command-line windows, 
-2. Kill all Ruby instances by opening a third Windows command-line window and: `taskkill /f /im ruby.exe`  
+2. Kill all Ruby instances and node by running `kill-smee-and-server.bat`
+1. Check the smee server is running on AWS
 3.  restart both commands
 1.  All the calls to and from the Github API from this application are logged here and can be re-sent: https://github.com/settings/apps/in-office-power-consumption-tester/advanced 
 4. Is the server running? To make the server start in boot, I added the batch file to "Startup Apps" 
 
 ![Startup apps](images/startup.png)
+5. ruby 2.7.4p191 (2021-07-07 revision a21a3b7d23) [x64-mingw32] 
