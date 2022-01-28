@@ -164,7 +164,7 @@ class GHAapp < Sinatra::Application
           accept: 'application/vnd.github.v3+json'
         )
         return result
-      elsif result == "job-failed-blocked-canceled"
+      elsif result == "job-failed-canceled"
 
         @installation_client.update_check_run(
           @payload['repository']['full_name'],
@@ -177,7 +177,7 @@ class GHAapp < Sinatra::Application
           conclusion: "cancelled", 
           output: {
             title: "No firmware to measure",
-            summary: "CircleCI job failed/blocked/canceled. No firmware to measure.",
+            summary: "CircleCI job failed/canceled. No firmware to measure.",
           },
           accept: 'application/vnd.github.v3+json'
         )
@@ -327,133 +327,334 @@ class GHAapp < Sinatra::Application
       )
     end
 
-    RETRY_PERIOD = 15  # seconds
-      
+    INITIAL_RETRY_TIME = 1
+
     #### Download the pre-built firmware from the blessed source: CircleCI ####
     def download_firmware
-      retry_time_elapsed = 0 
-      # Fetch the CircleCI job that contains the firmware. There should only be one match. 
-      begin 
-        begin 
-          response = HTTParty.get('https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch?limit=100&offset=0', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+        retry_time_elapsed = INITIAL_RETRY_TIME
+        begin
+            # Get a list of CircleCI pipelines 
+
+            begin 
+                response = HTTParty.get('https://circleci.com/api/v2/pipeline?org-slug=gh/happy-health&mine=false', :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+                    
+                if response.code == 401 
+                    raise "HTTP Response 401. Check CircleCI API key"  
+                end
+                if response.  code != 200
+                    raise "HTTP Response #{response.code}"
+                end
+                rescue RuntimeError => e
+                if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+                    logger.debug "Error: max timeout reached." 
+                    return "max_timeout_reached"
+                end 
+                retry_time_elapsed = retry_time_elapsed * 2 # Exponential backoff 
+
+                logger.debug "Error: #{e}, retrying in #{retry_time_elapsed} seconds..."
+                response_parsed = JSON.parse(response)
+                logger.debug response_parsed["message"]
+
+                sleep(retry_time_elapsed)
+                retry
+            end
+
+            response_parsed = JSON.parse(response)
+
+            #    Expected response: 
+            #
+            #         {
+            #   "next_page_token" : "AARLwwXBZCxa5TYj20yVNLUpMLKOqwfxyFwb48I7_RlgNOwE0hXEey64T1K9KwLn7MTxycgxKhEfnUO_pCYQcBjTHlnPcpBsW6mtbjQfeSVaxmUKTUzOhOQKlbSR2L3HX0-lRSoTyZx0tEmzLpaTidYiWGYMw8mB1zl_9vPeHv36_9qCWj8b1hY",
+            #   "items" : [ {
+            #     "id" : "d0bef5ec-c657-4d2c-bc18-76af58425804",
+            #     "errors" : [ ],
+            #     "project_slug" : "gh/happy-health/dialog_14683_scratch",
+            #     "updated_at" : "2022-01-25T18:55:49.944Z",
+            #     "number" : 2680,
+            #     "state" : "created",
+            #     "created_at" : "2022-01-25T18:55:49.944Z",
+            #     "trigger" : {
+            #       "received_at" : "2022-01-25T18:55:49.159Z",
+            #       "type" : "webhook",
+            #       "actor" : {
+            #         "login" : "andrew-ongh",
+            #         "avatar_url" : "https://avatars.githubusercontent.com/u/82856733?v=4"
+            #       }
+            #     },
+            #     "vcs" : {
+            #       "origin_repository_url" : "https://github.com/andrew-ongh/dialog_14683_scratch",
+            #       "target_repository_url" : "https://github.com/happy-health/dialog_14683_scratch",
+            #       "review_url" : "https://github.com/happy-health/dialog_14683_scratch/pull/594",
+            #       "revision" : "3b15e384af8dcac939a4f5dbd55227d4d0107372",
+            #       "review_id" : "594",
+            #       "provider_name" : "GitHub",
+            #       "commit" : {
+            #         "body" : "",
+            #         "subject" : "update readme"
+            #       },
+            #       "branch" : "pull/594"
+            #     }
+            
+            matching_pipline = response_parsed["items"].select{|item| item["vcs"]["revision"] == @payload['check_run']['head_sha']}
+            pipeline_id = matching_pipline[0]["id"]
+            #author = matching_pipline[0]["trigger"]["actor"]["login"]
+            #logger.debug "author: " + author
+
+            #
+            # Get a pipeline's workflows 
+            #
+            begin 
+                response = HTTParty.get("https://circleci.com/api/v2/pipeline/#{pipeline_id}/workflow/", :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+                    
+                if response.code == 401 
+                    raise "HTTP Response 401. Check CircleCI API key"  
+                end
+                if response.  code != 200
+                    raise "HTTP Response #{response.code}"
+                end
+                rescue RuntimeError => e
+                if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+                    logger.debug "Error: max timeout reached." 
+                    return "max_timeout_reached"
+                end 
+                retry_time_elapsed = retry_time_elapsed * 2 # Exponential backoff 
+
+                logger.debug "Error: #{e}, retrying in #{retry_time_elapsed} seconds..."
+                response_parsed = JSON.parse(response)
+                logger.debug response_parsed["message"]
+
+                sleep(retry_time_elapsed)
+                retry
+            end
+
+            response_parsed = JSON.parse(response)
+
+            #    Expected response: 
+            # 
+            # {"next_page_token"=>nil,
+            # "items"=>
+            #  [{"pipeline_id"=>"45c684ea-ef37-43fb-871e-5380751f10f1",
+            #    "id"=>"fd5638f7-a3eb-48df-b0e8-7dc45673e317",
+            #    "name"=>"main",
+            #    "project_slug"=>"gh/happy-health/dialog_14683_scratch",
+            #    "status"=>"success",
+            #    "started_by"=>"4ff88694-79d3-4303-87bf-a0d7c860c650",
+            #    "pipeline_number"=>2687,
+            #    "created_at"=>"2022-01-26T20:04:01Z",
+            #    "stopped_at"=>"2022-01-26T21:20:11Z"}]}
           
-          if response.code == 404 
-            raise "HTTP Response 404. Check CircleCI API key"  
-          end
-          if response.code != 200
-            raise "HTTP Response #{response.code}"
-          end
+            workflow_id = response_parsed["items"][0]["id"]
+
+            #
+            # Get workflow's jobs 
+            #
+            begin 
+                response = HTTParty.get("https://circleci.com/api/v2/workflow/#{workflow_id}/job", :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+                    
+                if response.code == 401 
+                    raise "HTTP Response 401. Check CircleCI API key"  
+                end
+                if response.  code != 200
+                    raise "HTTP Response #{response.code}"
+                end
+                rescue RuntimeError => e
+                if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+                    logger.debug "Error: max timeout reached." 
+                    return "max_timeout_reached"
+                end 
+                retry_time_elapsed = retry_time_elapsed * 2 # Exponential backoff 
+
+                logger.debug "Error: #{e}, retrying in #{retry_time_elapsed} seconds..."
+                response_parsed = JSON.parse(response)
+                logger.debug response_parsed["message"]
+
+                sleep(retry_time_elapsed)
+                retry
+            end
+
+            response_parsed = JSON.parse(response)
+
+            #    Expected response: 
+            # 
+            # {"next_page_token"=>nil,
+            #  "items"=>
+            #   [{"dependencies"=>[],
+            #     "job_number"=>27844,
+            #     "id"=>"819ac62c-73cf-461a-a4b2-120fc5677069",
+            #     "started_at"=>"2022-01-26T20:04:17Z",
+            #     "name"=>"queue/block_workflow",
+            #     "project_slug"=>"gh/happy-health/dialog_14683_scratch",
+            #     "status"=>"success",
+            #     "type"=>"build",
+            #     "stopped_at"=>"2022-01-26T20:04:19Z"},
+            #    {"dependencies"=>[],
+            #     "job_number"=>27843,
+            #     "id"=>"dcf731e0-99b3-42a1-9627-af12d7352d9d",
+            #     "started_at"=>"2022-01-26T20:04:06Z",
+            #     "name"=>"build_rf_tools_cli_p8_release",
+            #     "project_slug"=>"gh/happy-health/dialog_14683_scratch",
+            #     "status"=>"success",
+            #     "type"=>"build",
+            #     "stopped_at"=>"2022-01-26T21:17:30Z"},
+            #    {"dependencies"=>[],
+            #     "job_number"=>27839,
+            #     "id"=>"2494fa7a-f452-4b92-b138-e2834456d2c4",
+            #     "started_at"=>"2022-01-26T20:04:07Z",
+            #     "name"=>"build_rf_tools_cli_p6_release",
+            #     "project_slug"=>"gh/happy-health/dialog_14683_scratch",
+            #     "status"=>"success",
+            #     "type"=>"build",
+            #     "stopped_at"=>"2022-01-26T21:17:39Z"},
+            #    {"dependencies"=>[],
+            #     "job_number"=>27840,
+            #     "id"=>"2683e98d-0478-44e1-b295-0fece09305e8",
+            #     "started_at"=>"2022-01-26T20:04:07Z",
+            #     "name"=>"build_freertos_retarget_p8_release",
+            #     "project_slug"=>"gh/happy-health/dialog_14683_scratch",
+            #     "status"=>"success",
+            #     "type"=>"build",
+
+            matching_job = response_parsed["items"].select{|item| item["name"] == "pack_images"}
+            job_number = matching_job[0]["job_number"]
+            job_status = matching_job[0]["status"]
+            
+            if job_status == "failed" || job_status == "canceled" 
+                # One of the CircleCI jobs was canclled or failed. 
+                # Failed job = something did not build properly 
+                # cancelled job = A newer commit in the same pull request was submitted before this job could finish 
+                # (there are two different spellings for cancelled. CircleCI uses "canceled" and Github uses "cancelled")
+                # in either case, this entire script should just stop for this Github commit 
+                logger.debug "CircleCI job failed/canceled for commit " + @payload['check_run']['head_sha'] 
+                return "job-failed-canceled"
+            elsif job_status == [] 
+                raise "CircleCI pack_images job not created yet. Commit " + @payload['check_run']['head_sha']
+            else  
+                # Check if job is finished yet 
+                if job_status != "success"
+                    raise "pack_images job status: " + job_status
+                end
+                # else job is a success 
+                logger.debug 'CircleCI pack_images job found for commit ' + @payload['check_run']['head_sha']
+            end
         rescue RuntimeError => e
-          if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+            if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
             logger.debug "Error: max timeout reached." 
             return "max_timeout_reached"
-          end 
-          logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
-          retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
-          sleep(RETRY_PERIOD)
-          retry
-        end
+            end 
+            retry_time_elapsed = retry_time_elapsed * 2 # Exponential backoff 
 
+            logger.debug "Error: #{e}, retrying in #{retry_time_elapsed} seconds..."
+            
+            response_parsed = JSON.parse(response)
+            if(false == response_parsed["message"].nil?)
+                logger.debug response_parsed["message"]
+            end
+
+            sleep(retry_time_elapsed)   
+            retry 
+        end      
+
+        #
+        # Fetch the CircleCI artifact URLs of this CircleCI job 
+        #
+        logger.debug "Fetching artifact URLs for job #{job_number}" 
+        retry_time_elapsed = INITIAL_RETRY_TIME
+        begin 
+            response = HTTParty.get("https://circleci.com/api/v2/project/gh/happy-health/dialog_14683_scratch/#{job_number}/artifacts", :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
+            
+            if response.code != 200
+            raise "HTTP Response #{response.code}"
+            end
+        rescue RuntimeError => e
+            if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+            logger.debug "Error: max timeout reached." 
+            return "max_timeout_reached"
+            end 
+            retry_time_elapsed = retry_time_elapsed * 2 # Exponential backoff 
+
+            logger.debug "Error: #{e}, retrying in #{retry_time_elapsed} seconds..."
+            response_parsed = JSON.parse(response)
+            logger.debug response_parsed["message"]
+
+            sleep(retry_time_elapsed)   
+            retry
+        end
+        # Filter the artifacts for only the P8 reelase 
         response_parsed = JSON.parse(response)
-        # Filter for "vcs_revision" == commit hash  and "build_parameters"["CIRCLE_JOB"] == "pack_images"
-        circleCI_jobs_for_this_commit = response_parsed.select{|job| job["vcs_revision"] == @payload['check_run']['head_sha']}
-        circleCI_jobs_failed = circleCI_jobs_for_this_commit.select{|job| job["status"] == "canceled" || job["status"] == "failed" || job["status"] == "blocked"}
-        circleCI_jobs_pack_images = circleCI_jobs_for_this_commit.select{|job| job["build_parameters"]["CIRCLE_JOB"] == "pack_images"}
 
-        if circleCI_jobs_failed.length > 0
-          # One of the CircleCI jobs was canclled or failed. 
-          # Failed job = did not build properly 
-          # cancelled job = A newer commit in the same pull request was submitted before this job could finish 
-          # (there are two different spellings for cancelled. CircleCI uses "canceled" and Github uses "cancelled")
-          # in either case, this entire script should just stop for this Github commit 
-          logger.debug "At least one CircleCI job failed/blocked/canceled for commit " + @payload['check_run']['head_sha'][0..6] 
-          return "job-failed-blocked-canceled"
-        elsif circleCI_jobs_pack_images.length() == 0
-          raise "CircleCI pack_images job not created yet. Commit " + @payload['check_run']['head_sha'][0..6]
-        else  
-          # Check if job is finished yet 
-          if circleCI_jobs_pack_images[0]["status"] != "success"
-            raise "pack_images job status: " + circleCI_jobs_pack_images[0]["status"]
-          end
-          # else job is a success 
-          logger.debug "CircleCI \"pack_images\" job found for commit " + @payload['check_run']['head_sha'] 
-        end
-      rescue RuntimeError => e
-        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-          logger.debug "Error: max timeout reached." 
-          return "max_timeout_reached"
-        end 
-        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
-        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
-        sleep(RETRY_PERIOD)
-        retry
-      
-        retry 
-      end      
+        # Expected response: 
+        # 
+        # {"next_page_token"=>nil,
+        #  "items"=>
+        #   [{"path"=>
+        #      "~/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin",
+        #     "node_index"=>0,
+        #     "url"=>
+        #      "https://27848-276286849-gh.circle-artifacts.com/0/%7E/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin"},
+        #    {"path"=>
+        #      "~/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.elf",
+        #     "node_index"=>0,
+        #     "url"=>
+        #      "https://27848-276286849-gh.circle-artifacts.com/0/%7E/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.elf"},
+        #    {"path"=>
+        #      "~/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.map",
+        #     "node_index"=>0,
+        #     "url"=>
+        #      "https://27848-276286849-gh.circle-artifacts.com/0/%7E/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.map"},
+        #    {"path"=>
+        #      "~/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader_683_happy.bin.cached",
+        #     "node_index"=>0,
+        #     "url"=>
+        #      "https://27848-276286849-gh.circle-artifacts.com/0/%7E/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader_683_happy.bin.cached"},
 
-      # Fetch the CircleCI artifact URLs of this CircleCI job 
-      build_num = circleCI_jobs_pack_images[0]['build_num']
-      logger.debug "Fetching artifact URL for build num " + build_num.to_s
-      begin 
-        response = HTTParty.get("https://circleci.com/api/v1.1/project/github/happy-health/dialog_14683_scratch/" + build_num.to_s + "/artifacts", :headers => {"Circle-Token" => ENV['CIRCLE_CI_API_TOKEN']})
         
-        if response.code == 404 
-          raise "HTTP Response 404. Check CircleCI API key"  
+        matching_artifact = response_parsed["items"].select{|item| item["path"] == "~/builds/freertos_retarget/Happy_P8_QSPI_Release/freertos_retarget.bin"}
+        artifact_URL = matching_artifact[0]["url"]
+        logger.debug "Firmware URL: " + artifact_URL
+
+        # Download the firmware from the CircleCI artifact URL
+        logger.debug "Downloading application firmware"
+        begin 
+            download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/projects/dk_apps/templates/freertos_retarget/Happy_P8_QSPI_Release/freertos_retarget.bin")
+        rescue RuntimeError => e
+            if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+            logger.debug "Error: max timeout reached." 
+            return "max_timeout_reached"
+            end 
+            retry_time_elapsed = retry_time_elapsed * 2 # Exponential backoff 
+
+            logger.debug "Error: #{e}, retrying in #{retry_time_elapsed} seconds..."
+            response_parsed = JSON.parse(response)
+            logger.debug response_parsed["message"]
+
+            sleep(retry_time_elapsed)   
+            retry
         end
-        if response.code != 200
-          raise "HTTP Response #{response.code}"
+
+        # Filter the artifacts for only the bootloader
+        
+        matching_artifact = response_parsed["items"].select{|item| item["path"] == "~/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin"}
+        artifact_URL = matching_artifact[0]["url"]
+        logger.debug "Bootloader Firmware URL: " + artifact_URL
+
+        # Download the firmware from the CircleCI artifact URL
+        logger.debug "Downloading bootloader firmware"
+        begin 
+            download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/sdk/bsp/system/loaders/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin")
+        rescue RuntimeError => e
+            if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
+            logger.debug "Error: max timeout reached." 
+            return "max_timeout_reached"
+            end 
+            retry_time_elapsed = retry_time_elapsed * 2 # Exponential backoff 
+
+            logger.debug "Error: #{e}, retrying in #{retry_time_elapsed} seconds..."
+            response_parsed = JSON.parse(response)
+            logger.debug response_parsed["message"]
+
+            sleep(retry_time_elapsed)   
+            retry
         end
-      rescue RuntimeError => e
-        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-          logger.debug "Error: max timeout reached." 
-          return "max_timeout_reached"
-        end 
-        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
-        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
-        sleep(RETRY_PERIOD)
-        retry
-      end
-      # Filter the artifacts for only the P8 reelase 
-      response_parsed = JSON.parse(response)
-      artifact_descriptors = response_parsed.select{|descriptor| descriptor["path"] == "~/builds/freertos_retarget/Happy_P8_QSPI_Release/freertos_retarget.bin"}
-      artifact_URL = artifact_descriptors[0]["url"]
-      logger.debug "Firmware URL: " + artifact_URL
-
-      # Download the firmware from the CircleCI artifact URL
-      logger.debug "Downloading application firmware"
-      begin 
-        download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/projects/dk_apps/templates/freertos_retarget/Happy_P8_QSPI_Release/freertos_retarget.bin")
-      rescue RuntimeError => e
-        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-          logger.debug "Error: max timeout reached." 
-          return "max_timeout_reached"
-        end 
-        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
-        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
-        sleep(RETRY_PERIOD)
-        retry
-      end
-
-      # Filter the artifacts for only the bootloader
-      response_parsed = JSON.parse(response)
-      artifact_descriptors = response_parsed.select{|descriptor| descriptor["path"] == "~/builds/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin"}
-      artifact_URL = artifact_descriptors[0]["url"]
-      logger.debug "Bootloader Firmware URL: " + artifact_URL
-
-      # Download the firmware from the CircleCI artifact URL
-      logger.debug "Downloading bootloader firmware"
-      begin 
-        download_file(artifact_URL, "#{DIALOG_WORKSPACE_WITH_ALT_DRIVE_LETTER}/sdk/bsp/system/loaders/ble_suota_loader/DA14683-00-Release_QSPI/ble_suota_loader.bin")
-      rescue RuntimeError => e
-        if retry_time_elapsed > MAX_RETRY_TIME_ELAPSED
-          logger.debug "Error: max timeout reached." 
-          return "max_timeout_reached"
-        end 
-        logger.debug "Error: #{e}, retrying in #{RETRY_PERIOD} seconds..."
-        retry_time_elapsed = retry_time_elapsed + RETRY_PERIOD
-        sleep(RETRY_PERIOD)
-        retry
-      end
 
     end 
 
