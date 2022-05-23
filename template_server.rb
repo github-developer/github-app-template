@@ -1,4 +1,3 @@
-#andres testing and more testing, again
 require 'sinatra'
 require 'octokit'
 require 'dotenv/load' # Manages environment variables
@@ -27,6 +26,7 @@ set :bind, '0.0.0.0'
 # Feel free to rip out the event handling code if you don't need it.
 #
 # Have fun!
+# OKAY
 #
 
 class GHAapp < Sinatra::Application
