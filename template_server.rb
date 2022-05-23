@@ -61,8 +61,12 @@ class GHAapp < Sinatra::Application
     # # # # # # # # # # # #
     # ADD YOUR CODE HERE  #
     # # # # # # # # # # # #
-
+    "Hello World in handler"
     200 # success status
+  end
+
+  get '/' do
+    "Hello World in get no handler"
   end
 
 
