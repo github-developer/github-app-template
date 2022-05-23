@@ -26,7 +26,6 @@ set :bind, '0.0.0.0'
 # Feel free to rip out the event handling code if you don't need it.
 #
 # Have fun!
-# OKAY
 #
 
 class GHAapp < Sinatra::Application
