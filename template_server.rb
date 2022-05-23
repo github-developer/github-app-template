@@ -1,4 +1,3 @@
-#andres testing and more testing, again
 require 'sinatra'
 require 'octokit'
 require 'dotenv/load' # Manages environment variables
