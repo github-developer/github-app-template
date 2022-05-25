@@ -25,7 +25,7 @@ set :bind, '0.0.0.0'
 # Of course, not all apps need to receive and process events!
 # Feel free to rip out the event handling code if you don't need it.
 #
-# Have fun!
+# Have fun! I will
 #
 
 class GHAapp < Sinatra::Application
