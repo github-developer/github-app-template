@@ -1,4 +1,6 @@
-You can use this GitHub App template code as a foundation to create any GitHub App you'd like. You can learn how to configure a template GitHub App by following the "[Setting up your development environment](https://developer.github.com/apps/quickstart-guides/setting-up-your-development-environment/)" quickstart guide on developer.github.com.
+⚠️ Note: This repository is not maintained. For more recent guides about how to build GitHub Apps, see "[About writing code for a GitHub App](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/about-writing-code-for-a-github-app)."
+
+You can use this GitHub App template code as a foundation to create any GitHub App you'd like. You can learn how to configure a template GitHub App by following the archived "[Setting up your development environment](https://web.archive.org/web/20230604175646/https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/setting-up-your-development-environment-to-create-a-github-app)" guide.
 
 ## Install
 
